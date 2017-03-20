@@ -13,6 +13,11 @@ WINDOW *construct_menu_win(MENU *menu, char *name, int nlines, int ncols,
                             int begin_y, int begin_x);
 void userptr_func0(int item_index);
 
+/*
+ * asdfasdfsadf
+ */
+
+
 int main() {
     WINDOW *flag_win;
     WINDOW *hal_categories_win;
