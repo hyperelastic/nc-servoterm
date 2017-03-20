@@ -53,7 +53,7 @@ int main() {
                             "hal categories", 20, 20, 9, 1);
     hal_pins = construct_menu_items(hal_pins_list[0], n_hal_pins[0], NULL);
     hal_pins_menu = new_menu((ITEM **)hal_pins);
-    hal_pins_win = construct_menu_win(hal_pins_menu, "hal pins", 20, 20, 9, 22);
+    hal_pins_win = construct_menu_win(hal_pins_menu, "hal pins", 20, 50, 9, 22);
 
     while(true) {
         print_flags(flag_win, flags, highlights, N_FLAGS);
@@ -84,7 +84,7 @@ int main() {
                             n_hal_pins[i_item], NULL);
                         hal_pins_menu = new_menu((ITEM **)hal_pins);
                         hal_pins_win = construct_menu_win(hal_pins_menu,
-                                                "hal pins", 20, 20, 9, 22);
+                                                "hal pins", 20, 50, 9, 22);
 //                        f = item_userptr(cur_item);
 //                        f((int)item_index(cur_item)); /*pass category index*/
 //                        pos_menu_cursor(hal_categories_menu);
@@ -170,6 +170,9 @@ ITEM **construct_menu_items(char *items_list[], int n_items, void (*userptr_func
     items = (ITEM **)calloc(n_items, sizeof(ITEM *));
     for(i=0; i<n_items; ++i) {
         items[i] = new_item(items_list[i], ""); // no descr;
+        if (items[i] == NULL) {
+            break;
+        }
         if (userptr_func) {
 		    set_item_userptr(items[i], userptr_func);
         }
