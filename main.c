@@ -3,38 +3,36 @@
 #include <pthread.h>
 #include <ncurses.h>
 #include <menu.h>
+#include <unistd.h> //sleep
 #include "hal_list.h"
 
 #define NUMTHRDS 2
 
-//www.youtube.com/watch?v=QdzcExCojZA
-// +
-//www.youtube.com/watch?v=vLto1EaiiUc thread mutexes
+pthread_t threads [NUMTHRDS];
+int i;
 
-pthread_t t [NUMTHRDS];
-int coin_flip;
-
-pthread_mutex_t flip_done;
-
-static void *thread2(void *_){
+static void *worker(void *_){
     /* once this is hit, block all new threads untill unlock */
-    pthread_mutex_lock(&flip_done);
-    printf("Thread 2: flipped coin %d\n", coin_flip);
+    int j;
+    for (j=0; j<5; ++j) {
+        printf("\tj: %d\n", j);
+        usleep(1e5);
+    }
 }
-static void *thread1(void *_){
-    coin_flip = 23; //initialize a global variable
-    printf("Thread 1: flipped coin %d\n", coin_flip);
-    pthread_mutex_unlock(&flip_done);
+static void *manager(void *_){
+    while (1) {
+        printf("i: %d", i);
+        pthread_create(&threads[1], NULL, worker, NULL);
+        usleep(1e6);
+        pthread_join(threads[1], NULL);
+        i++;
+    }
 }
 
 int main() {
-    pthread_mutex_init(&flip_done, NULL); // NULL for no pmutex attribute
-    pthread_mutex_lock(&flip_done); // lock the main thread
-    pthread_create(&t[1], NULL, thread2, NULL);
-    pthread_create(&t[0], NULL, thread1, NULL);
+    pthread_create(&threads[0], NULL, manager, NULL);
 
     //must have this as main will block until all the supported threads are done
-    pthread_mutex_destroy(&flip_done);
     pthread_exit(NULL);
 
 //    initscr();
