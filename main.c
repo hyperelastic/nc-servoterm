@@ -1,217 +1,263 @@
+// currently pretty much just hacked out of the stmbl/term program
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <ncurses.h>
-#include <menu.h>
-#include "hal_list.h"
+#include <string.h>
+#include <math.h>
 
-#define N_FLAGS 2
+#include <unistd.h> // for sleep function
+#include <libserialport.h> // cross platform serial port lib
 
-void print_flags(WINDOW *flag_win, char *flags[], int highlights[], int size);
-ITEM **construct_menu_items(char *items_list[], int n_items,
-                            void (*userptr_func)(void)); /* pass userptr function*/
-WINDOW *construct_menu_win(MENU *menu, char *name, int nlines, int ncols,
-                            int begin_y, int begin_x);
-void userptr_func0(int item_index);
+#define BUFSIZE 20000
+
+struct sp_port *port;
+struct sp_port **ports;
+unsigned char buf_raw[BUFSIZE+1];
+//unsigned char buf[1000];
+
+void init_stmbl_port(struct sp_port *port);
+void write_to_stmbl_port(struct sp_port *port, char message[]);
+struct sp_port * get_stmbl_port ();
+void read_from_stmbl_port(struct sp_port *port);
+
 
 int main() {
-    WINDOW *flag_win;
-    WINDOW *hal_categories_win;
-    ITEM **hal_categories;
-    MENU *hal_categories_menu;
-    WINDOW *hal_pins_win;
-    ITEM **hal_pins;
-    MENU *hal_pins_menu;
-    ITEM *cur_item; 
-    void (*f)(void); /* userptr placeholder*/
-    int i, i_item;
-    int highlights[N_FLAGS] = {
-        0,
-        0
-    };
-    char *flags[N_FLAGS] = {
-        "Attached",
-        "Connected"
-    };
-    int key;
-    int mode = 0; /*0: categories, 1: pins */
+    struct sp_port *port;
+    enum sp_return error;
 
-    initscr();
-    cbreak();
-    noecho();
+    port = get_stmbl_port();
+    error = sp_open(port, SP_MODE_READ_WRITE);
 
-    flag_win = newwin(6, 13, 2, 1);
-    refresh();
-    print_flags(flag_win, flags, highlights, N_FLAGS);
-    mvprintw(0, 0, "Use left/right arrow keys to toggle flags. F2 to exit.");
+    if (error == SP_OK){//port available and can be opened
+    	init_stmbl_port(port);
+//
+//        write_to_stmbl_port(port, "fault0.reset = 1");
+//        write_to_stmbl_port(port, "fault0.reset = 0");
 
-//    hal_categories = construct_menu_items(hal_categories_list,
-//                        n_hal_categories, userptr_func0);
-    hal_categories = construct_menu_items(hal_categories_list,
-                        n_hal_categories, NULL);
-    hal_categories_menu = new_menu((ITEM **)hal_categories);
-    hal_categories_win = construct_menu_win(hal_categories_menu,
-                            "hal categories", 20, 20, 9, 1);
-    hal_pins = construct_menu_items(hal_pins_list[0], n_hal_pins[0], NULL);
-    hal_pins_menu = new_menu((ITEM **)hal_pins);
-    hal_pins_win = construct_menu_win(hal_pins_menu, "hal pins", 20, 50, 9, 22);
-
-    while(true) {
-        print_flags(flag_win, flags, highlights, N_FLAGS);
-        if (key == KEY_F(2)) {
-            break;
+        while (1) {
+            //sleep(0.5); // can do something else in mean time
+            read_from_stmbl_port(port);
         }
-        refresh();
-        switch(mode) {
-            case 0: {
-                key=wgetch(hal_categories_win);
-                switch(key) {
-                    case KEY_RIGHT:
-                        highlights[0] = !highlights[0];
-                        break;
-                    case KEY_LEFT:
-                        highlights[1] = !highlights[1];
-                        break;
-                    case KEY_DOWN:
-                        menu_driver(hal_categories_menu, REQ_DOWN_ITEM);
-                        break;
-                    case KEY_UP:
-                        menu_driver(hal_categories_menu, REQ_UP_ITEM);
-                        break;
-                    case 10: { /* Enter */ 
-                        cur_item = current_item(hal_categories_menu);
-                        i_item = item_index(cur_item);
-                        hal_pins = construct_menu_items(hal_pins_list[i_item],
-                            n_hal_pins[i_item], NULL);
-                        hal_pins_menu = new_menu((ITEM **)hal_pins);
-                        hal_pins_win = construct_menu_win(hal_pins_menu,
-                                                "hal pins", 20, 50, 9, 22);
-//                        f = item_userptr(cur_item);
-//                        f((int)item_index(cur_item)); /*pass category index*/
-//                        pos_menu_cursor(hal_categories_menu);
-                        mode = 1;
-                        break;
-                    }
-                }
-                wrefresh(hal_categories_win);
-                break;
-            }
-            case 1: {
-                key=wgetch(hal_pins_win);
-                switch(key) {
-                    case KEY_RIGHT:
-                        highlights[0] = !highlights[0];
-                        break;
-                    case KEY_LEFT:
-                        highlights[1] = !highlights[1];
-                        break;
-                    case KEY_DOWN:
-                        menu_driver(hal_pins_menu, REQ_DOWN_ITEM);
-                        break;
-                    case KEY_UP:
-                        menu_driver(hal_pins_menu, REQ_UP_ITEM);
-                        break;
-                    case 10: { /* Enter */ 
-                        cur_item = current_item(hal_pins_menu);
-////                        f = item_userptr(cur_item);
-////                        f((int)item_index(cur_item)); /*pass category index*/
-////                        pos_menu_cursor(hal_categories_menu);
-                        mode = 0;
-                        break;
-                    }
-                wrefresh(hal_pins_win);
-                break;
-                }
-            }
-        }
+        sp_close(port);
+    }
+    else {
+        printf("No serial devices detected\n");
     }
 
-    unpost_menu(hal_categories_menu);
-    free_menu(hal_categories_menu);
-    for (i=0; i<n_hal_categories; ++i) {
-        free_item(hal_categories[i]);
+    if (ports) {
+        sp_free_port_list(ports);
     }
 
-    unpost_menu(hal_pins_menu);
-    free_menu(hal_pins_menu);
-//    for (i=0; i<n_hal_pins[i_item]; ++i) {
-//        free_item(hal_pins[i]);
-//    }
-    endwin();
     return 0;
 }
 
-void userptr_func0(int item_index) { 
-    /* To be performed on enter in mode 0 */
-//    move(40, 0);
-//	clrtoeol();
-//	mvprintw(40, 0, "Item selected is : %d", item_index);
-}	
-
-WINDOW *construct_menu_win(MENU *menu, char* name, int nlines, int ncols, int begin_y, int begin_x){
-    WINDOW *menu_win = newwin(nlines, ncols, begin_y, begin_x);
-    keypad(menu_win, TRUE);
-    set_menu_win(menu, menu_win);
-    set_menu_sub(menu, derwin(menu_win, nlines-4, ncols-4, 3, 1));
-    set_menu_mark(menu, " * ");
-    box(menu_win, 0, 0);
-    mvwprintw(menu_win, 1, 1, name);
-    post_menu(menu);
-    refresh();
-    wrefresh(menu_win);
-    return(menu_win);
-}
-
-ITEM **construct_menu_items(char *items_list[], int n_items, void (*userptr_func)(void)) {
-    /*
-        Pass NULL to leave the userptr functions unasigned
-    */
-    ITEM **items;
+void read_from_stmbl_port(struct sp_port *port){
+    int ret;
     int i;
-    items = (ITEM **)calloc(n_items, sizeof(ITEM *));
-    for(i=0; i<n_items; ++i) {
-        items[i] = new_item(items_list[i], ""); // no descr;
-        if (items[i] == NULL) {
-            break;
+    int buf_count = 0;
+    ret = sp_blocking_read(port, buf_raw, BUFSIZE, 1);
+    if (ret > 0) {
+        buf_raw[ret] = 0;
+        for (i = 9; i<ret; ++i) {
+            if (buf_raw[i] == 0xff) {
+                break;
+            }
+            else {
+                printf("%c",buf_raw[i]&0x7f);
+            }
         }
-        if (userptr_func) {
-		    set_item_userptr(items[i], userptr_func);
-        }
-    }
-    items[n_items] = (ITEM *)NULL;
-    return(items);
-}
-
-void destruct_menu_items(ITEM **items, int n_items) {
-    int i;
-    for (i=0; i<n_items; ++i) {
-        free_item(items[i]);
     }
 }
 
-void print_flags(WINDOW *flag_win, char *flags[], int highlights[], int size) {
-    /*
-        STMBL attached, connected flags
-    */
-    int x, y, i;    
-
-    box(flag_win, 0, 0);
-    mvwprintw(flag_win, 1, 2, "STMBL");
-    x = 2;
-    y = 3;
-    for(i = 0; i < size; ++i) {
-        if(highlights[i]) {
-            wattron(flag_win, A_REVERSE); 
-            mvwprintw(flag_win, y, x, "%s", flags[i]);
-            wattroff(flag_win, A_REVERSE);
+struct sp_port *get_stmbl_port () {
+    char *descr;
+    int found;
+    enum sp_return error;
+    char descr_stmbl[6] = "STMBL";
+    error = sp_list_ports(&ports);
+    if (error == SP_OK) {
+        for (int i = 0; ports[i]; i++) {
+            found = 1;
+            descr = sp_get_port_description(ports[i]);
+            for (int j = 0; j<5; ++j){
+                if (descr[j] != descr_stmbl[j]) {
+                    found = 0;
+                }
+            }
+            if (found){
+                printf("STMBL found\n");
+                port = ports[i];
+            }
+            else {
+                port = NULL;
+            }
         }
-        else
-            mvwprintw(flag_win, y, x, "%s", flags[i]);
-        ++y;
     }
-    wrefresh(flag_win);
+    return(port);
 }
 
+void init_stmbl_port(struct sp_port *port){
+	sp_set_baudrate(port,38400);
+	sp_set_bits(port, 8);
+	sp_set_stopbits(port, 1);
+	sp_set_parity(port, SP_PARITY_NONE);
+	sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
+	sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
 
+}
+
+/*
+void write_to_stmbl_port(struct sp_port *port, char message[]){
+    size_t len = strlen(message);
+    int ret1 = sp_nonblocking_write(port, message, len);
+    int ret2 = sp_nonblocking_write(port, "\n", 1);
+    if(ret1 != len || ret2!=1){
+        printf("Error while sending");
+    }
+}
+*/
+
+
+
+//void ServoFrame::OnTimer(wxTimerEvent& evt){
+//	int ret;
+//	if(connected){
+//        if(!txqueue.empty()){
+//            int ret1 = sp_nonblocking_write(port, txqueue.front().c_str(), txqueue.front().length());
+//            int ret2 = sp_nonblocking_write(port, "\n", 1);
+//            if(ret1 != txqueue.front().length() || ret2!=1){
+//                wxMessageBox( wxT("Error while sending"), wxT("Error"), wxICON_EXCLAMATION);
+//                disconnect();
+//            }
+//            txqueue.pop();
+//        }
+//		ret = sp_nonblocking_read(port, buf, bufsize);
+//		if(ret > 0){
+//			buf[ret] = 0;
+//			if(uhu->GetValue()){
+//                for (int i=0; i<ret; i++) {
+//                    if ((buf[i]>>7)) {
+//                        values[0] = (float)(buf[i]-128-64)/64;
+//                        drawpanel->plotvalue(values);
+//                    }else{
+//                        text->AppendText(wxString::FromAscii(buf[i] & 0x7f));
+//                    }
+//                }
+//
+//            }else if(stmbl->GetValue()){
+//                for (int i=0; i<ret; i++){
+//                    if(addr >= 0){
+//                        values[addr++] = (buf[i]-128) / 128.0;
+//                        if(addr == 8){
+//                            drawpanel->plotvalue(values);
+//                            addr = -1;
+//                        }
+//                    }else if (buf[i] == 0xff) {
+//                        addr = 0;
+//                    }else{
+//                        text->AppendText(wxString::FromAscii(buf[i] & 0x7f));
+//                    }
+//                }
+//            }
+//        }else if(ret < 0){//disconnect on failure
+//            disconnect();
+//        }
+//	}
+//}
+
+
+
+// using std::cout;
+// using std::endl;
+// using std::string;
+// using std::to_string;
+// 
+// int ServoFrame::send(const string& s,bool h){
+//     if(!connected)
+//         connect();
+//     if(connected){
+//         if(h){//history
+//             if((history.size()==0 || history.back() != s) && !s.empty()){
+//                 history.push_back(s);
+//             }
+//             histpos = history.size();
+//         }
+//         txqueue.push(s);
+//     }
+//     return 1;
+// }
+// 
+// void ServoFrame::connect(){
+// // 	if(choose_port->IsEmpty())
+// //         return;
+// //    port = ports[choose_port->GetSelection()];
+//     port = ports[choose_port->GetSelection()];
+// 	if(sp_open(port, SP_MODE_READ_WRITE) == SP_OK){//port available and can be opened
+// 		sp_set_baudrate(port,38400);
+// 		sp_set_bits(port, 8);
+// 		sp_set_stopbits(port, 1);
+// 		sp_set_parity(port, SP_PARITY_NONE);
+// 		sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
+// 		sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
+// 		connected = true;
+// //		connectbutton->SetLabel(wxT("&Disonnect"));
+// //		refresh->Disable();
+// //		reset->Enable();
+// //		choose_port->Disable();
+// //      uhu->Disable();
+// //      stmbl->Disable();
+// //		textinput->SetFocus();
+// //      timer->Start(50);
+// 	}else{
+// 		wxMessageBox( wxT("Cannot open port"), wxT("Error"), wxICON_EXCLAMATION);
+// 		listports();
+// 	}
+// }
+// 
+// void ServoFrame::disconnect(){
+// 	if(sp_close(port) == SP_OK){
+// 		connected = false;
+// 		connectbutton->SetLabel(wxT("&Connect"));
+// 		refresh->Enable();
+// 		reset->Disable();
+// 		choose_port->Enable();
+//         uhu->Enable();
+//         stmbl->Enable();
+//         timer->Stop();
+// 	}
+//     listports();
+// }
+// 
+// void ServoFrame::listports(){
+//     int selection = 0;
+//     string description;
+// 	if (ports) {
+// 		sp_free_port_list(ports);
+// 	}
+// 	if(sp_list_ports(&ports) == SP_OK){
+// 		wxString str;
+// 		choose_port->Clear();
+//         if(ports){
+//             for (int i = 0; ports[i]; i++) {
+//                 description = sp_get_port_description(ports[i]);
+//                 choose_port->Append(description);
+//                 if(description.find("STMBL") != std::string::npos){
+//                     selection = i;
+//                 }
+//             }
+//             choose_port->SetSelection(selection);
+//             connectbutton->Enable();
+//         }else{
+//             connectbutton->Disable();
+//         }
+// 	}
+// }
+// 
+// 
+// // void ServoFrame::OnInput(wxCommandEvent& event){
+// //     string s =string(textinput->GetValue().mb_str());
+// //     send(s,true);
+// // 	textinput->Clear();
+// // }
 
 
 
