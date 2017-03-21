@@ -29,6 +29,7 @@ static void *manager(void *arg){
                 break;
             }
             case -1: { // clean
+                endwin();
                 pthread_exit(NULL);
                 break;
             }
@@ -48,13 +49,13 @@ int main() {
     keypad(stdscr, 1);
     cbreak();
     noecho();
+    mvprintw(1, 1, "Press any key, F1 for exit.");
     refresh();
-    mvprintw(1, 1, "Press any key, enter for exit.");
 
     pthread_create(&threads[0], NULL, manager, (void*)&manager_state);
     while (1) {
         key = getch();
-        if (key==10) {
+        if (key==KEY_F(1)) {
             wclear(stdscr);
             mvprintw(10, 10, "Exiting");
             refresh();
@@ -68,6 +69,5 @@ int main() {
  
     pthread_exit(NULL);
     endwin();
-
     return 0;
 }
