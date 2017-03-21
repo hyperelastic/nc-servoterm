@@ -41,8 +41,6 @@ static void screen_draw() {
     }
 }
 
-
-
 void cat_key() {
     char c;
     printf("Insert category character\n");
