@@ -6,103 +6,96 @@
 #include <ncurses.h>
 
 /* Program states */
-#define ST_CAT      0
-#define ST_PIN      1
-#define ST_INPUT    2
+#define ST_INIT     0
+#define ST_CAT      1
+#define ST_PIN      2
+#define ST_INPUT    3
+#define ST_EXIT     -1
 
-int pstate = 1;
+int pstate = ST_INIT;
+
+
+void init_draw() {
+    printf("State init\n");
+}
+void cat_draw() {
+    printf("State categories\n");
+}
+void pin_draw() {
+    printf("State pins\n");
+}
+void input_draw() {
+    printf("State input\n");
+}
+void exit_draw() {
+    printf("State exit\n");
+}
 
 static void screen_draw() {
     switch(pstate) {
-        case ST_CAT:        cat_draw();         break;
-        case ST_PIN:        pin_draw();         break;
-        case ST_INPUT:      input_draw();       break;
+        case ST_INIT:   init_draw();    break;
+        case ST_CAT:    cat_draw();     break;
+        case ST_PIN:    pin_draw();     break;
+        case ST_INPUT:  input_draw();   break;
+        case ST_EXIT:   exit_draw();    break;
     }
 }
 
-void cat_draw() {
-    printf("cat");
+
+
+void cat_key() {
+    char c;
+    printf("Insert category character\n");
+    c = getchar();
+    printf("You inserted %c\n", c);
+}
+void pin_key() {
+    char c;
+    printf("Insert pins character\n");
+    c = getchar();
+    printf("You inserted %c\n", c);
+}
+void input_key() {
+    char c;
+    printf("Insert input character\n");
+    c = getchar();
+    printf("You inserted %c\n", c);
 }
 
-void pin_draw() {
-    printf("pin");
-}
-
-void help_draw() {
-    printf("pin");
-}
-
-void calc_init() {
-  pstate = ST_CALC;
-}
-
-
-
-/* wait:
- *  -1: non-blocking, always draw screen
- *   0: blocking wait for input and always draw screen
- *   1: non-blocking, draw screen only if a configured delay has passed or after keypress
- */
-int input_handle(int wait) {
-  int ch;
-  /* ncurses
-   * int nodelay(WINDOW *win, bool bf);
-   * The nodelay option causes getch to be a non-blocking call. If no input is
-   * ready, getch returns ERR. If disabled (bf is FALSE), getch waits until a
-   * key is pressed. 
-   */
-  nodelay(stdscr, wait?1:0); // 1, if wait is true, 0 if not
-  if(wait != 1)
-    screen_draw();
-  else {
-    if check waiting; //!!!!!!!!!!!!!!!!!!!!!
-      screen_draw();
-    }
-  }
-  while((ch = getch()) != ERR) {
+void input_handle() {
+    int ch;
     switch(pstate) {
-      case ST_CALC:   return calc_key(ch);
-      case ST_BROWSE: return browse_key(ch);
-      case ST_HELP:   return help_key(ch);
-      case ST_DEL:    return delete_key(ch);
+        case ST_INIT:                           break;
+        case ST_CAT:      return cat_key(ch);   break;
+        case ST_PIN:      return pin_key(ch);   break;
+        case ST_INPUT:    return input_key(ch); break;
+        case ST_EXIT:                           break;
     }
-    screen_draw();
-  }
-  return 0;
-}
-
-
-/* parse command line */
-static char *argv_parse(int argc, char **argv) {
-  int i, j, len;
-  char *dir = NULL;
-
-  /* read from commandline */
-  return dir;
 }
 
 
 /* main program */
 int main(int argc, char **argv) {
-//    argv_parse(argc, argv)
-    initscr();
-    cbreak();
-    noecho();
-    curs_set(0);
-    keypad(stdscr, TRUE);
-
-    while(1) {
-      if(pstate == ST_CALC && calc_process())
-        break;
-      else if(pstate == ST_DEL)
-        delete_process();
-      else if(input_handle(0))
-        break;
+//    initscr();
+//    cbreak();
+//    noecho();
+//    curs_set(0);
+//    keypad(stdscr, TRUE);
+    while (1) {
+        if (pstate < 4) {
+            screen_draw();
+            input_handle();
+            pstate ++;
+        }
+        else {
+            pstate = -1;
+        }
+        sleep(2);
     }
 
-    erase();
-    refresh();
-    endwin();
+//    erase();
+//    refresh();
+//    endwin();
 
     return 0;
 }
