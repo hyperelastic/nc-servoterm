@@ -3,23 +3,21 @@
 #include <errno.h>
 
 #include <unistd.h>
-#include <sys/time.h>
-#include <locale.h>
 #include <ncurses.h>
 
+/* Program states */
+#define ST_CAT      0
+#define ST_PIN      1
+#define ST_INPUT    2
 
-int pstate = 0;
-int read_only = 0;
-long update_delay = 100;
-static long lastupdate = 999;
-
+int pstate = 1;
 
 static void screen_draw() {
-  switch(pstate) {
-    case ST_CAT:    cat_draw();     break;
-    case ST_PIN:    pin_draw();     break;
-    case ST_HELP:   help_draw();    break;
-  }
+    switch(pstate) {
+        case ST_CAT:        cat_draw();         break;
+        case ST_PIN:        pin_draw();         break;
+        case ST_INPUT:      input_draw();       break;
+    }
 }
 
 void cat_draw() {
@@ -34,9 +32,11 @@ void help_draw() {
     printf("pin");
 }
 
-void calc_init(char *dir, struct dir *org) {
+void calc_init() {
   pstate = ST_CALC;
 }
+
+
 
 /* wait:
  *  -1: non-blocking, always draw screen
@@ -55,7 +55,6 @@ int input_handle(int wait) {
   if(wait != 1)
     screen_draw();
   else {
-
     if check waiting; //!!!!!!!!!!!!!!!!!!!!!
       screen_draw();
     }
@@ -85,34 +84,27 @@ static char *argv_parse(int argc, char **argv) {
 
 /* main program */
 int main(int argc, char **argv) {
-  char *dir;
+//    argv_parse(argc, argv)
+    initscr();
+    cbreak();
+    noecho();
+    curs_set(0);
+    keypad(stdscr, TRUE);
 
-  if((dir = argv_parse(argc, argv)) == NULL)
-    dir = ".";
+    while(1) {
+      if(pstate == ST_CALC && calc_process())
+        break;
+      else if(pstate == ST_DEL)
+        delete_process();
+      else if(input_handle(0))
+        break;
+    }
 
-  calc_init(dir, NULL);
+    erase();
+    refresh();
+    endwin();
 
-  initscr();
-  cbreak();
-  noecho();
-  /* invisible cursor */
-  curs_set(0);
-  keypad(stdscr, TRUE);
-
-  while(1) {
-    if(pstate == ST_CALC && calc_process())
-      break;
-    else if(pstate == ST_DEL)
-      delete_process();
-    else if(input_handle(0))
-      break;
-  }
-
-  erase();
-  refresh();
-  endwin();
-
-  return 0;
+    return 0;
 }
 
 
