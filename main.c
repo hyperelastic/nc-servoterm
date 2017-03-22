@@ -14,13 +14,15 @@
 #define ST_PIN      3
 #define ST_INPUT    4
 
-int pstate = ST_DISCO;
-int stmbl_con = 0;
+#define BUFSIZE 20000
+
 pthread_t threads[2];
 struct sp_port *port;
 struct sp_port **ports;
+unsigned char buf_raw[BUFSIZE+1];
+int pstate = ST_DISCO;
 
-void disco_draw() {
+void discon_draw() {
     mvprintw(10, 1, "Disconnected");
     refresh();
 }
@@ -45,7 +47,7 @@ static void screen_draw() {
     move(10, 0);
     clrtoeol();
     switch(pstate) {
-        case ST_DISCO:  disco_draw();   break;
+        case ST_DISCO:  discon_draw();   break;
         case ST_CAT:    cat_draw();     break;
         case ST_PIN:    pin_draw();     break;
         case ST_INPUT:  input_draw();   break;
@@ -53,7 +55,7 @@ static void screen_draw() {
     }
 }
 
-void disco_key(int key) {
+void discon_key(int key) {
     switch (key) {
         case KEY_F(1):
             pstate=ST_EXIT;
@@ -68,7 +70,6 @@ void disco_key(int key) {
             pstate = ST_CAT;
             break;
     }
-    refresh();
 }
 
 void cat_key(int key) {
@@ -86,7 +87,6 @@ void cat_key(int key) {
             pstate = ST_PIN;
             break;
     }
-    refresh();
 }
 
 void pin_key(int key) {
@@ -104,7 +104,6 @@ void pin_key(int key) {
             pstate = ST_INPUT;
             break;
     }
-    refresh();
 }
 
 void input_key(int key) {
@@ -122,7 +121,6 @@ void input_key(int key) {
             pstate = ST_EXIT;
             break;
     }
-    refresh();
 }
 
 void input_handle() {
@@ -131,26 +129,44 @@ void input_handle() {
     clrtoeol();
     mvprintw(12, 0, "Up/Down:");
     switch(pstate) {
-        case ST_DISCO:    return disco_key(key);    break;
+        case ST_DISCO:    return discon_key(key);   break;
         case ST_CAT:      return cat_key(key);      break;
         case ST_PIN:      return pin_key(key);      break;
         case ST_INPUT:    return input_key(key);    break;
         case ST_EXIT:                               break;
     }
+    refresh();
 }
 
-static void *con_worker(void *_) {
+void prep_stmbl_port(struct sp_port *port){
+	sp_set_baudrate(port,38400);
+	sp_set_bits(port, 8);
+	sp_set_stopbits(port, 1);
+	sp_set_parity(port, SP_PARITY_NONE);
+	sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
+	sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
+}
+
+static void *discon_worker(void *_) {
     char *descr;
-    char *compare;
+    char *contains;
     enum sp_return error;
     int i;
+
+    if (ports) {
+        sp_free_port_list(ports);
+    }
     error = sp_list_ports(&ports);
     if (error == SP_OK) {
         for(i = 0; ports[i]; i++) {
             descr = sp_get_port_description(ports[i]);
-            compare = strstr(descr, "STMBL");
+            contains = strstr(descr, "STMBL");
+            if (contains) {
+                break;
+            }
         }
-        if (compare) {
+        if (contains) {
+            port = ports[i];
             descr = "attached";
         }
         else {
@@ -161,19 +177,47 @@ static void *con_worker(void *_) {
     clrtoeol();
     mvprintw(2, 1, "STMBL is: %s.", descr);
     refresh();
+    pthread_exit(NULL);
 }
 
-static void *con_manager(void *_) {
-    while (1) {
-        if (pstate == ST_EXIT) {
-            pthread_exit(NULL);
-            break;
-        }
-        else {
-            pthread_create(&threads[1], NULL, con_worker, NULL);
-            usleep(1e6);
+static void *con_worker(void *_) {
+    int i;
+    int read_ret;
+    move(24, 0);
+    clrtoeol();
+    read_ret = sp_nonblocking_read(port, buf_raw, BUFSIZE); 
+    if (read_ret > 0) {
+        buf_raw[read_ret] = 0;
+        for (i = 9; i<read_ret; ++i) {
+            if (buf_raw[i] == 0xff) {
+                break;
+            }
+            else {
+                mvprintw(24, 1, "Message is: %c.", buf_raw[i]&0x7f);
+            }
         }
     }
+    refresh();
+    pthread_exit(NULL);
+}
+
+static void *manager(void *_) {
+    enum sp_return error;
+    while (pstate == ST_DISCO) {
+        pthread_create(&threads[1], NULL, discon_worker, NULL);
+        usleep(1e5);
+    }
+
+    error = sp_open(port, SP_MODE_READ_WRITE);
+    if(error == SP_OK) {
+        prep_stmbl_port(port);
+        while (pstate != ST_EXIT) {
+            pthread_create(&threads[1], NULL, con_worker, NULL);
+            usleep(1e3);
+        }
+    }
+    sp_close(port);
+    pthread_exit(NULL);
 }
 
 void nc_setup() {
@@ -194,7 +238,7 @@ void nc_cleanup() {
 
 int main(int argc, char **argv) {
     nc_setup();
-    pthread_create(&threads[0], NULL, con_manager, NULL);
+    pthread_create(&threads[0], NULL, manager, NULL);
 
     while (1) {
         screen_draw();
