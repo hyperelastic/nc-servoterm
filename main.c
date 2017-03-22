@@ -6,6 +6,7 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <libserialport.h>
+#include <ctype.h>
 
 /* Program states */
 #define ST_EXIT     0
@@ -14,13 +15,14 @@
 #define ST_PIN      3
 #define ST_INPUT    4
 
-#define BUFSIZE 20000
+//#define BUFSIZE 20 // ditched
 
 pthread_t threads[2];
 struct sp_port *port;
 struct sp_port **ports;
-unsigned char buf_raw[BUFSIZE+1];
+//unsigned char buf_raw[BUFSIZE+1];
 int pstate = ST_DISCO;
+char rx = 0;  
 
 void discon_draw() {
     mvprintw(10, 1, "Disconnected");
@@ -181,23 +183,17 @@ static void *discon_worker(void *_) {
 }
 
 static void *con_worker(void *_) {
-    int i;
-    int read_ret;
-    move(24, 0);
-    clrtoeol();
-    read_ret = sp_nonblocking_read(port, buf_raw, BUFSIZE); 
-    if (read_ret > 0) {
-        buf_raw[read_ret] = 0;
-        for (i = 9; i<read_ret; ++i) {
-            if (buf_raw[i] == 0xff) {
-                break;
-            }
-            else {
-                mvprintw(24, 1, "Message is: %c.", buf_raw[i]&0x7f);
-            }
-        }
+    char message[] = "conf0\n";
+    while(pstate != ST_EXIT) {
+//        clrtoeol();
+//        addstr(buf_raw);
+        refresh();
+//        memset(&buf_raw[0], 0, BUFSIZE);
+//        clear();
+        move(2, 0);
+        sp_nonblocking_write(port, &message, sizeof(message));  
+        usleep(1e6);
     }
-    refresh();
     pthread_exit(NULL);
 }
 
@@ -209,12 +205,28 @@ static void *manager(void *_) {
     }
 
     error = sp_open(port, SP_MODE_READ_WRITE);
+
     if(error == SP_OK) {
         prep_stmbl_port(port);
-        while (pstate != ST_EXIT) {
-            pthread_create(&threads[1], NULL, con_worker, NULL);
-            usleep(1e3);
-        }
+        char rx = 0;  
+//        setbuf(stdout, NULL);  
+        pthread_create(&threads[1], NULL, con_worker, NULL);
+//        setbuf(stdout, buf_raw);  
+        while(pstate != ST_EXIT) {  
+           sp_nonblocking_read(port, &rx, sizeof(rx));  
+           if isprint(rx)  
+           {  
+//               putchar(rx);  
+                addch(rx);
+//                refresh();
+                rx = 0;  
+           }
+            else if (rx==10) { //\n
+//               putchar(rx);
+                addch(10);
+                rx = 0;
+            }
+        }  
     }
     sp_close(port);
     pthread_exit(NULL);
