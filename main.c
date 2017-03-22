@@ -4,36 +4,48 @@
 
 #include <unistd.h>
 #include <ncurses.h>
+#include <pthread.h>
+#include <libserialport.h>
 
 /* Program states */
-#define ST_INIT     0
-#define ST_CAT      1
-#define ST_PIN      2
-#define ST_INPUT    3
-#define ST_EXIT     -1
+#define ST_EXIT     0
+#define ST_DISCO    1
+#define ST_CAT      2
+#define ST_PIN      3
+#define ST_INPUT    4
 
-int pstate = ST_INIT;
+int pstate = ST_DISCO;
+int stmbl_con = 0;
+pthread_t threads[2];
+struct sp_port *port;
+struct sp_port **ports;
 
-
-void init_draw() {
-    printf("State init\n");
+void disco_draw() {
+    mvprintw(10, 1, "Disconnected");
+    refresh();
 }
 void cat_draw() {
-    printf("State categories\n");
+    mvprintw(10, 1, "Categories");
+    refresh();
 }
 void pin_draw() {
-    printf("State pins\n");
+    mvprintw(10, 1, "Pins");
+    refresh();
 }
 void input_draw() {
-    printf("State input\n");
+    mvprintw(10, 1, "Input");
+    refresh();
 }
 void exit_draw() {
-    printf("State exit\n");
+    wclear(stdscr);
+    mvprintw(10, 1, "Exiting");
 }
 
 static void screen_draw() {
+    move(10, 0);
+    clrtoeol();
     switch(pstate) {
-        case ST_INIT:   init_draw();    break;
+        case ST_DISCO:  disco_draw();   break;
         case ST_CAT:    cat_draw();     break;
         case ST_PIN:    pin_draw();     break;
         case ST_INPUT:  input_draw();   break;
@@ -41,59 +53,162 @@ static void screen_draw() {
     }
 }
 
-void cat_key() {
-    char c;
-    printf("Insert category character\n");
-    c = getchar();
-    printf("You inserted %c\n", c);
+void disco_key(int key) {
+    switch (key) {
+        case KEY_F(1):
+            pstate=ST_EXIT;
+            break;
+        case KEY_DOWN:
+            mvprintw(12, 10, "Down.");
+            break;
+        case KEY_UP:
+            mvprintw(12, 10, "Up.");
+            break;
+        default:
+            pstate = ST_CAT;
+            break;
+    }
+    refresh();
 }
-void pin_key() {
-    char c;
-    printf("Insert pins character\n");
-    c = getchar();
-    printf("You inserted %c\n", c);
+
+void cat_key(int key) {
+    switch (key) {
+        case KEY_F(1):
+            pstate=ST_EXIT;
+            break;
+        case KEY_DOWN:
+            mvprintw(12, 10, "Down.");
+            break;
+        case KEY_UP:
+            mvprintw(12, 10, "Up.");
+            break;
+        default:
+            pstate = ST_PIN;
+            break;
+    }
+    refresh();
 }
-void input_key() {
-    char c;
-    printf("Insert input character\n");
-    c = getchar();
-    printf("You inserted %c\n", c);
+
+void pin_key(int key) {
+    switch (key) {
+        case KEY_F(1):
+            pstate=ST_EXIT;
+            break;
+        case KEY_DOWN:
+            mvprintw(12, 10, "Down.");
+            break;
+        case KEY_UP:
+            mvprintw(12, 10, "Up.");
+            break;
+        default:
+            pstate = ST_INPUT;
+            break;
+    }
+    refresh();
+}
+
+void input_key(int key) {
+    switch (key) {
+        case KEY_F(1):
+            pstate=ST_EXIT;
+            break;
+        case KEY_DOWN:
+            mvprintw(12, 10, "Down.");
+            break;
+        case KEY_UP:
+            mvprintw(12, 10, "Up.");
+            break;
+        default:
+            pstate = ST_EXIT;
+            break;
+    }
+    refresh();
 }
 
 void input_handle() {
-    int ch;
+    int key = getch();
+    move(12, 0);
+    clrtoeol();
+    mvprintw(12, 0, "Up/Down:");
     switch(pstate) {
-        case ST_INIT:                           break;
-        case ST_CAT:      return cat_key(ch);   break;
-        case ST_PIN:      return pin_key(ch);   break;
-        case ST_INPUT:    return input_key(ch); break;
-        case ST_EXIT:                           break;
+        case ST_DISCO:    return disco_key(key);    break;
+        case ST_CAT:      return cat_key(key);      break;
+        case ST_PIN:      return pin_key(key);      break;
+        case ST_INPUT:    return input_key(key);    break;
+        case ST_EXIT:                               break;
     }
 }
 
-
-/* main program */
-int main(int argc, char **argv) {
-//    initscr();
-//    cbreak();
-//    noecho();
-//    curs_set(0);
-//    keypad(stdscr, TRUE);
-    while (1) {
-        if (pstate < 4) {
-            screen_draw();
-            input_handle();
-            pstate ++;
+static void *con_worker(void *_) {
+    char *descr;
+    char *compare;
+    enum sp_return error;
+    int i;
+    error = sp_list_ports(&ports);
+    if (error == SP_OK) {
+        for(i = 0; ports[i]; i++) {
+            descr = sp_get_port_description(ports[i]);
+            compare = strstr(descr, "STMBL");
+        }
+        if (compare) {
+            descr = "attached";
         }
         else {
-            pstate = -1;
+            descr = "not attached";
         }
-        sleep(2);
+    }
+    move(2, 0);
+    clrtoeol();
+    mvprintw(2, 1, "STMBL is: %s.", descr);
+    refresh();
+}
+
+static void *con_manager(void *_) {
+    while (1) {
+        if (pstate == ST_EXIT) {
+            pthread_exit(NULL);
+            break;
+        }
+        else {
+            pthread_create(&threads[1], NULL, con_worker, NULL);
+            usleep(1e6);
+        }
+    }
+}
+
+void nc_setup() {
+    initscr();
+    keypad(stdscr, 1);
+    cbreak();
+    noecho();
+    mvprintw(1, 1, "Press any key to proceed, up/down arrows for fun, F1 for"
+            "exit.");
+    refresh();
+}
+
+void nc_cleanup() {
+    erase();
+    refresh();
+    endwin();
+}
+
+int main(int argc, char **argv) {
+    nc_setup();
+    pthread_create(&threads[0], NULL, con_manager, NULL);
+
+    while (1) {
+        screen_draw();
+        if (pstate == ST_EXIT) {
+            break;
+        }
+        else {
+            input_handle();
+        }
     }
 
-//    erase();
-//    refresh();
-//    endwin();
+    getch();
+    pthread_exit(NULL);
+    nc_cleanup();
 
     return 0;
 }
