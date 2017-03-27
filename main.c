@@ -8,228 +8,210 @@
 #include <libserialport.h>
 #include <ctype.h>
 
-/* Program states */
-#define ST_EXIT     0
-#define ST_DISCO    1
-#define ST_CAT      2
-#define ST_PIN      3
-#define ST_INPUT    4
+/* ncurses display states for main thread */
+#define NC_EXIT     0
+#define NC_CATEGORY 1
+#define NC_PIN      2
+#define NC_INPUT    3
 
-pthread_t threads[2];
+/* connection states for helper threads */
+#define CON_ERROR       0
+#define CON_DETACHED    1
+#define CON_STARTING    2
+#define CON_CONNECTED   3
+
+
+pthread_t threads[2];   /* connection: [0]=manage and send, [1]=receive */
 struct sp_port *port;
 struct sp_port **ports;
-int pstate = ST_DISCO;
-char rx = 0;  
-WINDOW *term_win;
+char rx = 0;                    /* read from port */
+char message[] = "conf0.p\n";   /* write to port TODO dynamic */
 
-void discon_draw() {
-    mvprintw(10, 1, "Disconnected");
-    refresh();
-}
-void cat_draw() {
+WINDOW *w_title;             
+WINDOW *w_con_receive;            /* reserved for the receiver thread */
+WINDOW *w_con_status;             /* reserved for the con_manager thread */
+
+int nc_state;
+int con_state;
+
+void draw_cat() {
     mvprintw(10, 1, "Categories");
     refresh();
 }
-void pin_draw() {
+
+void draw_pin() {
     mvprintw(10, 1, "Pins");
     refresh();
 }
-void input_draw() {
+
+void draw_input() {
     mvprintw(10, 1, "Input");
     refresh();
 }
-void exit_draw() {
+
+void draw_exit() {
     wclear(stdscr);
     mvprintw(10, 1, "Exiting");
 }
 
-static void screen_draw() {
-    move(10, 0);
-    clrtoeol();
-    switch(pstate) {
-        case ST_DISCO:  discon_draw();  break;
-        case ST_CAT:    cat_draw();     break;
-        case ST_PIN:    pin_draw();     break;
-        case ST_INPUT:  input_draw();   break;
-        case ST_EXIT:   exit_draw();    break;
+static void draw_screen() {
+//    move(10, 0);
+//    clrtoeol();
+    switch(nc_state) {
+        case NC_CATEGORY:   draw_cat();     break;
+        case NC_PIN:        draw_pin();     break;
+        case NC_INPUT:      draw_input();   break;
+        case NC_EXIT:       draw_exit();    break;
     }
 }
 
-void discon_key(int key) {
+void input_cat(int key) {
     switch (key) {
-        case KEY_F(1):
-            pstate=ST_EXIT;
-            break;
-        case KEY_DOWN:
-            mvprintw(12, 10, "Down.");
-            break;
-        case KEY_UP:
-            mvprintw(12, 10, "Up.");
-            break;
-        default:
-            pstate = ST_CAT;
-            break;
+        case KEY_F(1):  nc_state=NC_EXIT;           break;
+        case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
+        case KEY_UP:    mvprintw(12, 10, "Up.");    break;
+        default:        nc_state = NC_PIN;          break;
     }
 }
 
-void cat_key(int key) {
+void input_pin(int key) {
     switch (key) {
-        case KEY_F(1):
-            pstate=ST_EXIT;
-            break;
-        case KEY_DOWN:
-            mvprintw(12, 10, "Down.");
-            break;
-        case KEY_UP:
-            mvprintw(12, 10, "Up.");
-            break;
-        default:
-            pstate = ST_PIN;
-            break;
-    }
-}
-
-void pin_key(int key) {
-    switch (key) {
-        case KEY_F(1):
-            pstate=ST_EXIT;
-            break;
-        case KEY_DOWN:
-            mvprintw(12, 10, "Down.");
-            break;
-        case KEY_UP:
-            mvprintw(12, 10, "Up.");
-            break;
-        default:
-            pstate = ST_INPUT;
-            break;
+        case KEY_F(1):  nc_state=NC_EXIT;           break;
+        case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
+        case KEY_UP:    mvprintw(12, 10, "Up.");    break;
+        default:        nc_state = NC_INPUT;        break;
     }
 }
 
 void input_key(int key) {
     switch (key) {
-        case KEY_F(1):
-            pstate=ST_EXIT;
-            break;
-        case KEY_DOWN:
-            mvprintw(12, 10, "Down.");
-            break;
-        case KEY_UP:
-            mvprintw(12, 10, "Up.");
-            break;
-        default:
-            pstate = ST_EXIT;
-            break;
+        case KEY_F(1):  nc_state=NC_EXIT;           break;
+        case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
+        case KEY_UP:    mvprintw(12, 10, "Up.");    break;
+        default:        nc_state = NC_EXIT;         break;
     }
 }
 
 void input_handle() {
     int key = getch();
-    move(12, 0);
-    clrtoeol();
+//    move(12, 0);
+//    clrtoeol();
     mvprintw(12, 0, "Up/Down:");
-    switch(pstate) {
-        case ST_DISCO:    return discon_key(key);   break;
-        case ST_CAT:      return cat_key(key);      break;
-        case ST_PIN:      return pin_key(key);      break;
-        case ST_INPUT:    return input_key(key);    break;
-        case ST_EXIT:                               break;
+    switch(nc_state) {
+        case NC_CATEGORY:   input_cat(key);     break;
+        case NC_PIN:        input_pin(key);     break;
+        case NC_INPUT:      input_key(key);     break;
+        case NC_EXIT:                           break;
     }
     refresh();
 }
 
-void prep_stmbl_port(struct sp_port *port){
-	sp_set_baudrate(port,38400);
-	sp_set_bits(port, 8);
-	sp_set_stopbits(port, 1);
-	sp_set_parity(port, SP_PARITY_NONE);
-	sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
-	sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
-}
-
-static void *disco_spotter(void *_) {
+static void con_port_ping(void) {
     char *descr;
     char *contains;
     enum sp_return error;
     int i;
 
-    while(pstate == ST_DISCO) {
-        if (ports) {
-            sp_free_port_list(ports);
-        }
-        error = sp_list_ports(&ports);
-        if (error == SP_OK) {
-            for(i = 0; ports[i]; i++) {
-                descr = sp_get_port_description(ports[i]);
-                contains = strstr(descr, "STMBL");
-                if (contains) {
-                    break;
-                }
-            }
-            if (contains) {
-                port = ports[i];
-                descr = "attached";
-            }
-            else {
-                descr = "not attached";
-            }
-        }
-        move(2, 0);
-        clrtoeol();
-        mvprintw(2, 1, "STMBL is: %s.", descr);
-        refresh();
-        usleep(1e5);
+    if (ports) {
+        sp_free_port_list(ports);
     }
-    pthread_exit(NULL);
+
+    error = sp_list_ports(&ports);
+    if (error == SP_OK) {
+        for(i = 0; ports[i]; i++) {
+            descr = sp_get_port_description(ports[i]);
+            contains = strstr(descr, "STMBL");
+            if (contains) {
+                break;
+            }
+        }
+        if (contains) {
+            descr = "attached";
+            port = ports[i];
+            con_state = CON_STARTING;
+        }
+        else {
+            descr = "not attached";
+            con_state = CON_DETACHED;
+        }
+    }
+
+    wmove(w_con_status, 1, 1);
+    wclrtoeol(w_con_status);
+    wprintw(w_con_status, "STMBL is: %s.", descr);
+    box(w_con_status, 0, 0);
+    wrefresh(w_con_status);
 }
 
 static void *con_reciever(void *_) {
-    enum sp_return_error;
+    enum sp_return error;
     char rx = 0;  
-    while((pstate != ST_EXIT) && (pstate != ST_DISCO)) {  
-        sp_nonblocking_read(port, &rx, sizeof(rx));  
-        if isprint(rx)  
-        {  
-//            addch(rx);
-            waddch(term_win, rx);
+    while((nc_state != NC_EXIT) && (con_state != CON_ERROR)) {  
+        sp_nonblocking_read(port, &rx, sizeof(rx));
+        if isprint(rx) {  
+            waddch(w_con_receive, rx);
         }
         else if (rx==10) { //\n
-//            addch(10);
-            waddch(term_win, rx);
+            waddch(w_con_receive, rx);
         }
-        rx = 0;  
+        rx = 0;
+
+        error = sp_input_waiting(port);
+        if (error < 0) {
+            con_state = CON_ERROR;
+        }
+
         usleep(1e2);
     }  
     pthread_exit(NULL);
 }
 
-static void *manager(void *_) {
+void con_init() {
     enum sp_return error;
-    char message[] = "conf0\n";
-    while (pstate != ST_EXIT) { 
-        if (pstate == ST_DISCO) {
-            pthread_create(&threads[1], NULL, disco_spotter, NULL);
+
+    error = sp_open(port, SP_MODE_READ_WRITE);
+    if (error == SP_OK) {
+	    sp_set_baudrate(port,38400);
+	    sp_set_bits(port, 8);
+	    sp_set_stopbits(port, 1);
+	    sp_set_parity(port, SP_PARITY_NONE);
+	    sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
+	    sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
+
+        con_state = CON_CONNECTED;
+        pthread_create(&threads[1], NULL, con_reciever, NULL);
+
+    }
+    else {
+        con_state = CON_ERROR;
+    }
+}
+
+void con_write() {
+    sp_nonblocking_write(port, &message, sizeof(message));  
+    usleep(1e6);
+}
+
+static void *con_manager(void *_) {
+    while( nc_state != NC_EXIT) {
+        switch(con_state) {
+            case CON_DETACHED:
+                con_port_ping();
+                break;
+            case CON_STARTING:
+                con_init(); /* also starts the reciever thread */
+                break;
+            case CON_CONNECTED:
+                wrefresh(w_con_receive);
+                con_write();
+                break;
+            case CON_ERROR:
+                pthread_join(threads[1], NULL);
+                sp_close(port);
+                con_state = CON_DETACHED;
+                break;
         }
-    
-        error = sp_open(port, SP_MODE_READ_WRITE);
-        if (error == SP_OK) {
-            prep_stmbl_port(port);
-            pthread_create(&threads[1], NULL, con_reciever, NULL);
-            while (pstate != ST_EXIT) {
-//                refresh();
-                wrefresh(term_win);
-                move(2, 0);
-                sp_nonblocking_write(port, &message, sizeof(message));  
-                usleep(1e6);
-            }
-            sp_close(port);
-        }
-        else {
-            pstate = ST_DISCO;
-        }
-    
-        sp_close(port);
-        pthread_join(threads[1], NULL);
+        usleep(1e3);
     }
     pthread_exit(NULL);
 }
@@ -239,14 +221,31 @@ void nc_setup() {
     keypad(stdscr, 1);
     cbreak();
     noecho();
-    mvprintw(1, 1, "Press any key to proceed, up/down arrows for fun, F1 for"
-            "exit.");
 
-    term_win = newwin(60, 40, 5, 40); //height, width, starty, startx
-    scrollok(term_win, TRUE);
-    wrefresh(term_win);
-
+    w_title = newwin(5, 80, 0, 0);
+    box(w_title, 0, 0);
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM");
+    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down arrows for "
+            "fun, F1 for exit.");
     refresh();
+    wrefresh(w_title);
+
+    /* stmbl status window, used by con_manager */
+    w_con_status = newwin(3, 39, 5, 0);
+    box(w_con_status, 0, 0);
+    refresh();
+    wrefresh(w_con_status);
+
+    /* stmbl output window, used by con_reciever thread */
+    w_con_receive = newwin(40, 40, 5, 40);
+    box(w_con_receive, 0, 0);
+    refresh();
+    wrefresh(w_con_receive);
+    mvwin(w_con_receive, 6,41);
+    wresize(w_con_receive, 38, 38);
+    scrollok(w_con_receive, TRUE);
+    wclear(w_con_receive);
+    wrefresh(w_con_receive);
 }
 
 void nc_cleanup() {
@@ -256,12 +255,16 @@ void nc_cleanup() {
 }
 
 int main(int argc, char **argv) {
+
+    nc_state = NC_CATEGORY;
+    con_state = CON_DETACHED;
+
     nc_setup();
-    pthread_create(&threads[0], NULL, manager, NULL);
+    pthread_create(&threads[0], NULL, con_manager, NULL);
 
     while (1) {
-        screen_draw();
-        if (pstate == ST_EXIT) {
+        draw_screen();
+        if (nc_state == NC_EXIT) {
             break;
         }
         else {
