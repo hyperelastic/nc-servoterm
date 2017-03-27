@@ -171,16 +171,15 @@ void con_init() {
 
     error = sp_open(port, SP_MODE_READ_WRITE);
     if (error == SP_OK) {
-	    sp_set_baudrate(port,38400);
-	    sp_set_bits(port, 8);
-	    sp_set_stopbits(port, 1);
-	    sp_set_parity(port, SP_PARITY_NONE);
-	    sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
-	    sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
-
+        sp_set_baudrate(port,38400);
+        sp_set_bits(port, 8);
+        sp_set_stopbits(port, 1);
+        sp_set_parity(port, SP_PARITY_NONE);
+        sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
+        sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
+    
         con_state = CON_CONNECTED;
         pthread_create(&threads[1], NULL, con_reciever, NULL);
-
     }
     else {
         con_state = CON_ERROR;
@@ -189,7 +188,6 @@ void con_init() {
 
 void con_write() {
     sp_nonblocking_write(port, &message, sizeof(message));  
-    usleep(1e6);
 }
 
 static void *con_manager(void *_) {
@@ -211,7 +209,7 @@ static void *con_manager(void *_) {
                 con_state = CON_DETACHED;
                 break;
         }
-        usleep(1e3);
+        usleep(1e6);
     }
     pthread_exit(NULL);
 }
