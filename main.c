@@ -51,7 +51,7 @@ void draw_input() {
 
 void draw_exit() {
     wclear(stdscr);
-    mvprintw(10, 1, "Exiting");
+    mvprintw(1, 1, "Finished. Press any key to exit.");
 }
 
 static void draw_screen() {
