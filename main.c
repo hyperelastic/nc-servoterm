@@ -15,14 +15,12 @@
 #define ST_PIN      3
 #define ST_INPUT    4
 
-//#define BUFSIZE 20 // ditched
-
 pthread_t threads[2];
 struct sp_port *port;
 struct sp_port **ports;
-//unsigned char buf_raw[BUFSIZE+1];
 int pstate = ST_DISCO;
 char rx = 0;  
+WINDOW *term_win;
 
 void discon_draw() {
     mvprintw(10, 1, "Disconnected");
@@ -49,7 +47,7 @@ static void screen_draw() {
     move(10, 0);
     clrtoeol();
     switch(pstate) {
-        case ST_DISCO:  discon_draw();   break;
+        case ST_DISCO:  discon_draw();  break;
         case ST_CAT:    cat_draw();     break;
         case ST_PIN:    pin_draw();     break;
         case ST_INPUT:  input_draw();   break;
@@ -149,86 +147,90 @@ void prep_stmbl_port(struct sp_port *port){
 	sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
 }
 
-static void *discon_worker(void *_) {
+static void *disco_spotter(void *_) {
     char *descr;
     char *contains;
     enum sp_return error;
     int i;
 
-    if (ports) {
-        sp_free_port_list(ports);
-    }
-    error = sp_list_ports(&ports);
-    if (error == SP_OK) {
-        for(i = 0; ports[i]; i++) {
-            descr = sp_get_port_description(ports[i]);
-            contains = strstr(descr, "STMBL");
+    while(pstate == ST_DISCO) {
+        if (ports) {
+            sp_free_port_list(ports);
+        }
+        error = sp_list_ports(&ports);
+        if (error == SP_OK) {
+            for(i = 0; ports[i]; i++) {
+                descr = sp_get_port_description(ports[i]);
+                contains = strstr(descr, "STMBL");
+                if (contains) {
+                    break;
+                }
+            }
             if (contains) {
-                break;
+                port = ports[i];
+                descr = "attached";
+            }
+            else {
+                descr = "not attached";
             }
         }
-        if (contains) {
-            port = ports[i];
-            descr = "attached";
-        }
-        else {
-            descr = "not attached";
-        }
+        move(2, 0);
+        clrtoeol();
+        mvprintw(2, 1, "STMBL is: %s.", descr);
+        refresh();
+        usleep(1e5);
     }
-    move(2, 0);
-    clrtoeol();
-    mvprintw(2, 1, "STMBL is: %s.", descr);
-    refresh();
     pthread_exit(NULL);
 }
 
-static void *con_worker(void *_) {
-    char message[] = "conf0\n";
-    while(pstate != ST_EXIT) {
-//        clrtoeol();
-//        addstr(buf_raw);
-        refresh();
-//        memset(&buf_raw[0], 0, BUFSIZE);
-//        clear();
-        move(2, 0);
-        sp_nonblocking_write(port, &message, sizeof(message));  
-        usleep(1e6);
-    }
+static void *con_reciever(void *_) {
+    enum sp_return_error;
+    char rx = 0;  
+    while((pstate != ST_EXIT) && (pstate != ST_DISCO)) {  
+        sp_nonblocking_read(port, &rx, sizeof(rx));  
+        if isprint(rx)  
+        {  
+//            addch(rx);
+            waddch(term_win, rx);
+        }
+        else if (rx==10) { //\n
+//            addch(10);
+            waddch(term_win, rx);
+        }
+        rx = 0;  
+        usleep(1e2);
+    }  
     pthread_exit(NULL);
 }
 
 static void *manager(void *_) {
     enum sp_return error;
-    while (pstate == ST_DISCO) {
-        pthread_create(&threads[1], NULL, discon_worker, NULL);
-        usleep(1e5);
-    }
-
-    error = sp_open(port, SP_MODE_READ_WRITE);
-
-    if(error == SP_OK) {
-        prep_stmbl_port(port);
-        char rx = 0;  
-//        setbuf(stdout, NULL);  
-        pthread_create(&threads[1], NULL, con_worker, NULL);
-//        setbuf(stdout, buf_raw);  
-        while(pstate != ST_EXIT) {  
-           sp_nonblocking_read(port, &rx, sizeof(rx));  
-           if isprint(rx)  
-           {  
-//               putchar(rx);  
-                addch(rx);
+    char message[] = "conf0\n";
+    while (pstate != ST_EXIT) { 
+        if (pstate == ST_DISCO) {
+            pthread_create(&threads[1], NULL, disco_spotter, NULL);
+        }
+    
+        error = sp_open(port, SP_MODE_READ_WRITE);
+        if (error == SP_OK) {
+            prep_stmbl_port(port);
+            pthread_create(&threads[1], NULL, con_reciever, NULL);
+            while (pstate != ST_EXIT) {
 //                refresh();
-                rx = 0;  
-           }
-            else if (rx==10) { //\n
-//               putchar(rx);
-                addch(10);
-                rx = 0;
+                wrefresh(term_win);
+                move(2, 0);
+                sp_nonblocking_write(port, &message, sizeof(message));  
+                usleep(1e6);
             }
-        }  
+            sp_close(port);
+        }
+        else {
+            pstate = ST_DISCO;
+        }
+    
+        sp_close(port);
+        pthread_join(threads[1], NULL);
     }
-    sp_close(port);
     pthread_exit(NULL);
 }
 
@@ -239,6 +241,11 @@ void nc_setup() {
     noecho();
     mvprintw(1, 1, "Press any key to proceed, up/down arrows for fun, F1 for"
             "exit.");
+
+    term_win = newwin(60, 40, 5, 40); //height, width, starty, startx
+    scrollok(term_win, TRUE);
+    wrefresh(term_win);
+
     refresh();
 }
 
@@ -263,10 +270,8 @@ int main(int argc, char **argv) {
     }
 
     getch();
-    pthread_exit(NULL);
     nc_cleanup();
-
-    return 0;
+    pthread_exit(NULL);
 }
 
 
