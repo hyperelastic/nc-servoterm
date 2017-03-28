@@ -106,6 +106,14 @@ void input_handle() {
     refresh();
 }
 
+static void con_status_print(char* con_status) {
+    wmove(w_con_status, 1, 1);
+    wclrtoeol(w_con_status);
+    wprintw(w_con_status, "STMBL is: %s.", con_status);
+    box(w_con_status, 0, 0);
+    wrefresh(w_con_status);
+}
+
 static void con_port_ping(void) {
     char *descr;
     char *contains;
@@ -136,11 +144,6 @@ static void con_port_ping(void) {
         }
     }
 
-    wmove(w_con_status, 1, 1);
-    wclrtoeol(w_con_status);
-    wprintw(w_con_status, "STMBL is: %s.", descr);
-    box(w_con_status, 0, 0);
-    wrefresh(w_con_status);
 }
 
 static void *con_reciever(void *_) {
@@ -194,12 +197,15 @@ static void *con_manager(void *_) {
     while( nc_state != NC_EXIT) {
         switch(con_state) {
             case CON_DETACHED:
+                con_status_print("detached");
                 con_port_ping();
                 break;
             case CON_STARTING:
+                con_status_print("connecting");
                 con_init(); /* also starts the reciever thread */
                 break;
             case CON_CONNECTED:
+                con_status_print("connected");
                 wrefresh(w_con_receive);
                 con_write();
                 break;
