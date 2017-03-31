@@ -1,15 +1,22 @@
+/*
+ * file hal_list.c
+ *
+ * Update workflow:
+ *     1 find categories in stmbl/src/comps
+ *     2 list pins in the classic servoterm, sending category names to stmbl
+ *     3 commented unused categories in hal_categories_list and hal_pins_list
+ *     4 count the number of pins per category and modify into n_hal_pins
+ *     5 uncomment main (end of file), compile gcc -o test hal_list.c
+ *         hal_list.h
+ *     6 ./test and check for error
+ *     7 comment main, remove ./test
+ *
+ */
+
+
 #include <stdio.h>
 #include "hal_list.h"
 
-// Update workflow:
-//      1 find categories in stmbl/src/comps
-//      2 list pins in the classic servoterm, sending category names to stmbl
-//      3 commented unused categories in hal_categories_list and hal_pins_list
-//      4 count the number of pins per category and modify into n_hal_pins
-//      5 uncomment main (end of file), compile gcc -o test hal_list.c
-//          hal_list.h
-//      6 ./test and check for error
-//      7 comment main, remove ./test
 
 char *hal_categories_list[] = {
     "adc",
@@ -45,7 +52,8 @@ char *hal_categories_list[] = {
 int n_hal_categories = sizeof(hal_categories_list)/
                         sizeof(hal_categories_list[0]);
 
-/* make sure, that matches with "n_hal_pins" */
+
+/* make sure, this matches with "n_hal_pins" */
 char **hal_pins_list[] = {
     (char *[])   {
         /*"adc",        */
@@ -682,8 +690,6 @@ void test_hal_pins() {
         }
     }
 }
-
-
 
 /*
 int main() {

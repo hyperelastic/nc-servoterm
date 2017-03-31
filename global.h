@@ -13,8 +13,10 @@
  *
  */
 
+
 #ifndef global_h
 #define global_h
+
 
 #include <ncurses.h>
 #include <pthread.h>
@@ -30,6 +32,7 @@
 #define CON_DETACHED    1
 #define CON_STARTING    2
 #define CON_CONNECTED   3
+
 
 /* program states */
 extern int tui_state;           /* state of main(), for text user interface */
@@ -48,5 +51,6 @@ extern char message[];          /* write to port TODO dynamic */
 extern WINDOW *w_title;             
 extern WINDOW *w_con_receive;   /* reserved for the receiver thread */
 extern WINDOW *w_con_status;    /* reserved for the con_manager thread */
+
 
 #endif /* global_h */

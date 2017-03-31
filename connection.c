@@ -2,8 +2,6 @@
  * file: connection.c
  */
 
-#include "connection.h"
-#include "global.h"
 
 #include <ncurses.h>
 #include <unistd.h>
@@ -11,6 +9,10 @@
 #include <pthread.h>
 #include <string.h>
 #include <libserialport.h>
+
+#include "connection.h"
+#include "global.h"
+
 
 /* global program states */
 int tui_state;
