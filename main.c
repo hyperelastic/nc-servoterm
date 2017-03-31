@@ -10,6 +10,7 @@
 #include "global.h"
 #include "connection.h"
 
+/* global text-user-interface-specific */
 WINDOW *w_title;
 
 void draw_cat();
@@ -23,8 +24,8 @@ void input_pin(int key);
 void input_key(int key);
 void input_handle();
 
-void nc_setup();
-void nc_cleanup();
+void tui_setup();
+void tui_cleanup();
 
 void draw_cat() {
     mvprintw(10, 1, "Categories");
@@ -49,38 +50,38 @@ void draw_exit() {
 void draw_screen() {
 //    move(10, 0);
 //    clrtoeol();
-    switch(nc_state) {
-        case NC_CATEGORY:   draw_cat();     break;
-        case NC_PIN:        draw_pin();     break;
-        case NC_INPUT:      draw_input();   break;
-        case NC_EXIT:       draw_exit();    break;
+    switch(tui_state) {
+        case TUI_CATEGORY:  draw_cat();     break;
+        case TUI_PIN:       draw_pin();     break;
+        case TUI_INPUT:     draw_input();   break;
+        case TUI_EXIT:      draw_exit();    break;
     }
 }
 
 void input_cat(int key) {
     switch (key) {
-        case KEY_F(1):  nc_state=NC_EXIT;           break;
+        case KEY_F(1):  tui_state=TUI_EXIT;         break;
         case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
         case KEY_UP:    mvprintw(12, 10, "Up.");    break;
-        default:        nc_state = NC_PIN;          break;
+        default:        tui_state = TUI_PIN;        break;
     }
 }
 
 void input_pin(int key) {
     switch (key) {
-        case KEY_F(1):  nc_state=NC_EXIT;           break;
+        case KEY_F(1):  tui_state=TUI_EXIT;         break;
         case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
         case KEY_UP:    mvprintw(12, 10, "Up.");    break;
-        default:        nc_state = NC_INPUT;        break;
+        default:        tui_state = TUI_INPUT;      break;
     }
 }
 
 void input_key(int key) {
     switch (key) {
-        case KEY_F(1):  nc_state=NC_EXIT;           break;
+        case KEY_F(1):  tui_state=TUI_EXIT;         break;
         case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
         case KEY_UP:    mvprintw(12, 10, "Up.");    break;
-        default:        nc_state = NC_EXIT;         break;
+        default:        tui_state = TUI_EXIT;       break;
     }
 }
 
@@ -89,16 +90,16 @@ void input_handle() {
 //    move(12, 0);
 //    clrtoeol();
     mvprintw(12, 0, "Up/Down:");
-    switch(nc_state) {
-        case NC_CATEGORY:   input_cat(key);     break;
-        case NC_PIN:        input_pin(key);     break;
-        case NC_INPUT:      input_key(key);     break;
-        case NC_EXIT:                           break;
+    switch(tui_state) {
+        case TUI_CATEGORY:  input_cat(key);     break;
+        case TUI_PIN:       input_pin(key);     break;
+        case TUI_INPUT:     input_key(key);     break;
+        case TUI_EXIT:                          break;
     }
     refresh();
 }
 
-void nc_setup() {
+void tui_setup() {
     initscr();
     keypad(stdscr, 1);
     cbreak();
@@ -106,7 +107,7 @@ void nc_setup() {
 
     w_title = newwin(5, 80, 0, 0);
     box(w_title, 0, 0);
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM");
+    mvwprintw(w_title, 1, 1, "TUI-SERVOTERM");
     mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down arrows for "
             "fun, F1 for exit.");
     refresh();
@@ -130,7 +131,7 @@ void nc_setup() {
     wrefresh(w_con_receive);
 }
 
-void nc_cleanup() {
+void tui_cleanup() {
     erase();
     refresh();
     endwin();
@@ -138,15 +139,15 @@ void nc_cleanup() {
 
 int main(int argc, char **argv) {
 
-    nc_state = NC_CATEGORY;
+    tui_state = TUI_CATEGORY;
     con_state = CON_DETACHED;
 
-    nc_setup();
+    tui_setup();
     pthread_create(&threads[0], NULL, con_manager, NULL);
 
     while (1) {
         draw_screen();
-        if (nc_state == NC_EXIT) {
+        if (tui_state == TUI_EXIT) {
             break;
         }
         else {
@@ -155,7 +156,7 @@ int main(int argc, char **argv) {
     }
 
     getch();
-    nc_cleanup();
+    tui_cleanup();
     pthread_exit(NULL);
 }
 

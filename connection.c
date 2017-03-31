@@ -13,7 +13,7 @@
 #include <libserialport.h>
 
 /* global program states */
-int nc_state;
+int tui_state;
 int con_state;
 
 /* global additional connection threads */
@@ -73,7 +73,7 @@ void con_port_ping(void) {
 void *con_reciever(void *_) {
     enum sp_return error;
 //    char rx = 0;  
-    while((nc_state != NC_EXIT) && (con_state != CON_ERROR)) {  
+    while((tui_state != TUI_EXIT) && (con_state != CON_ERROR)) {  
         sp_nonblocking_read(port, &rx, sizeof(rx));
         if isprint(rx) {  
             waddch(w_con_receive, rx);
@@ -118,7 +118,7 @@ void con_write() {
 }
 
 void *con_manager(void *_) {
-    while( nc_state != NC_EXIT) {
+    while( tui_state != TUI_EXIT) {
         switch(con_state) {
             case CON_DETACHED:
                 con_status_print("detached");
