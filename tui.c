@@ -49,6 +49,7 @@ void draw_screen() {
         case TUI_INPUT:     draw_input();   break;
         case TUI_EXIT:      draw_exit();    break;
     }
+//    refresh();
     box(w_title, 0, 0);
     wrefresh(w_title);
 }
@@ -89,7 +90,7 @@ void input_handle() {
         case TUI_INPUT:     input_key(key);     break;
         case TUI_EXIT:                          break;
     }
-    refresh();
+//    refresh();
 }
 
 void tui_setup() {
@@ -99,7 +100,9 @@ void tui_setup() {
     noecho();
 
     w_title = newwin(5, 80, 0, 0);
+    box(w_title, 0, 0);
     refresh();
+    wrefresh(w_title);
 
     /* stmbl status window, used by con_manager */
     w_con_status = newwin(3, 39, 5, 0);
@@ -116,10 +119,13 @@ void tui_setup() {
     wresize(w_con_receive, 38, 38);
     scrollok(w_con_receive, TRUE);
     wclear(w_con_receive);
+    refresh();
     wrefresh(w_con_receive);
 }
 
 void tui_cleanup() {
+    delwin(w_title);
+    delwin(w_con_receive);
     erase();
     refresh();
     endwin();

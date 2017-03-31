@@ -33,10 +33,12 @@ WINDOW *w_con_status;           /* reserved for the con_manager thread */
 
 
 void con_status_print(char* con_status) {
-    wmove(w_con_status, 1, 1);
-    wclrtoeol(w_con_status);
-    wprintw(w_con_status, "STMBL is: %s.", con_status);
+//    wmove(w_con_status, 1, 1);
+//    wclrtoeol(w_con_status);
+    wclear(w_con_status);
+    mvwprintw(w_con_status, 1, 1, "STMBL is: %s.", con_status);
     box(w_con_status, 0, 0);
+    refresh();
     wrefresh(w_con_status);
 }
 
