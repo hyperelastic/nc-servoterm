@@ -37,8 +37,8 @@ void con_status_print(char* con_status) {
 //    wclrtoeol(w_con_status);
     wclear(w_con_status);
     mvwprintw(w_con_status, 1, 1, "STMBL is: %s.", con_status);
-    box(w_con_status, 0, 0);
     refresh();
+    box(w_con_status, 0, 0);
     wrefresh(w_con_status);
 }
 
@@ -134,6 +134,7 @@ void *con_manager(void *_) {
                 break;
             case CON_CONNECTED:
                 con_status_print("connected");
+                refresh();
                 wrefresh(w_con_receive);
                 con_write();
                 break;
