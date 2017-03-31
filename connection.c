@@ -1,3 +1,6 @@
+/*
+ * file: connection.c
+ */
 
 #include "connection.h"
 #include "global.h"
@@ -9,15 +12,22 @@
 #include <string.h>
 #include <libserialport.h>
 
-struct sp_port *port;
-struct sp_port **ports;
-pthread_t threads[2];           /* connection: [0]=manage & send, [1]=receive */
-char rx = 0;
-char message[] = "conf0.p\n"; 
-WINDOW *w_con_receive;          /* reserved for the receiver thread */
-WINDOW *w_con_status;           /* reserved for the con_manager thread */
+/* global program states */
 int nc_state;
 int con_state;
+
+/* global additional connection threads */
+pthread_t threads[2];
+
+/* global connection-specific */
+struct sp_port *port;
+struct sp_port **ports;
+char rx = 0;
+char message[] = "conf0.p\n"; 
+
+/* global ncurses-specific */
+WINDOW *w_con_receive;          /* reserved for the receiver thread */
+WINDOW *w_con_status;           /* reserved for the con_manager thread */
 
 
 void con_status_print(char* con_status) {
