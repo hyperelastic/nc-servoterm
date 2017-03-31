@@ -1,5 +1,5 @@
 /* 
- * file: globals.h
+ * file: global.h
  *
  * All the global variables.
  * 

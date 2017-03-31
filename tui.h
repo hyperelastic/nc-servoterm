@@ -8,8 +8,6 @@
 #ifndef tui_h
 #define tui_h
 
-#include <ncurses.h>
-
 void draw_cat();
 void draw_pin();
 void draw_input(); 
@@ -23,5 +21,6 @@ void input_handle();
 
 void tui_setup();
 void tui_cleanup();
+
 
 #endif /* tui_h */

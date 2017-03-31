@@ -1,5 +1,5 @@
 /*
- * file hal_list.h
+ * file: hal_list.h
  *
  * Lists of stmbl hal categories and pins for creating
  * the corresponding ncurses menus.

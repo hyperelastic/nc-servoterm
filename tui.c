@@ -5,39 +5,52 @@
  *
  */
 
+
+#include <ncurses.h>
+
 #include "tui.h"
 #include "global.h"
+
 
 /* global text-user-interface-specific */
 WINDOW *w_title;
 
+
+/*TODO figure out why this works ok in xterm but awful in raw console mode */
+
 void draw_cat() {
-    mvprintw(10, 1, "Categories");
-    refresh();
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode categories");
+    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down for fun, F2 for"
+            " exit");
 }
 
 void draw_pin() {
-    mvprintw(10, 1, "Pins");
-    refresh();
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode pins");
+    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down for fun, F2 for"
+            " exit");
 }
 
 void draw_input() {
-    mvprintw(10, 1, "Input");
-    refresh();
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode input");
+    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down for fun, F2 for"
+            " exit");
 }
 
 void draw_exit() {
-    wclear(stdscr);
-    mvprintw(1, 1, "Finished. Press any key to exit.");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode exit");
+    mvwprintw(w_title, 3, 1, "Exiting. Press any key to quit the program.");
 }
 
 void draw_screen() {
+    werase(w_title);
     switch(tui_state) {
         case TUI_CATEGORY:  draw_cat();     break;
         case TUI_PIN:       draw_pin();     break;
         case TUI_INPUT:     draw_input();   break;
         case TUI_EXIT:      draw_exit();    break;
     }
+    box(w_title, 0, 0);
+    wrefresh(w_title);
 }
 
 void input_cat(int key) {
@@ -86,12 +99,7 @@ void tui_setup() {
     noecho();
 
     w_title = newwin(5, 80, 0, 0);
-    box(w_title, 0, 0);
-    mvwprintw(w_title, 1, 1, "TUI-SERVOTERM");
-    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down arrows for "
-            "fun, F1 for exit.");
     refresh();
-    wrefresh(w_title);
 
     /* stmbl status window, used by con_manager */
     w_con_status = newwin(3, 39, 5, 0);

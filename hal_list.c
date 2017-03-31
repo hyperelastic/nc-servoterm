@@ -1,5 +1,5 @@
 /*
- * file hal_list.c
+ * file: hal_list.c
  *
  * Update workflow:
  *     1 find categories in stmbl/src/comps
