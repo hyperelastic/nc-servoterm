@@ -22,12 +22,10 @@ int main(int argc, char **argv) {
     pthread_create(&threads[0], NULL, con_manager, NULL);
 
     while (1) {
+        input_handle();
         draw_screen();
         if (tui_state == TUI_EXIT) {
             break;
-        }
-        else {
-            input_handle();
         }
     }
 

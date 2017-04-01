@@ -14,26 +14,33 @@
 
 /* global text-user-interface-specific */
 WINDOW *w_title;
+WINDOW *w_shell;
+
+/* connection+display variables */
+char shell_buffer[SHELL_BUF_SIZE] = "";
+char *p_shell_buffer = shell_buffer;
+int shell_position = 0;
+int shell_send_flag = 0;
 
 
-/*TODO figure out why this works ok in xterm but awful in raw console mode */
+void draw_shell() {
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode shell");
+    mvwprintw(w_title, 2, 1, "F5-console F6-category F7-pin F8-quit"
+           " F9-stop F10-start F11-clear");
+    mvwprintw(w_title, 3, 1, "Input command in shell and send with enter.");
+    mvwprintw(w_shell, 1, 1, shell_buffer);
+}
 
 void draw_cat() {
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode categories");
-    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down for fun, F2 for"
-            " exit");
+    mvwprintw(w_title, 2, 1, "F5-console F6-category F7-pin F8-quit F9-stop");
+    mvwprintw(w_title, 3, 1, "Pick stmbl-hal category and press enter.");
 }
 
 void draw_pin() {
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode pins");
-    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down for fun, F2 for"
-            " exit");
-}
-
-void draw_input() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode input");
-    mvwprintw(w_title, 3, 1, "Press any key to proceed, up/down for fun, F2 for"
-            " exit");
+    mvwprintw(w_title, 2, 1, "F5-console F6-category F7-pin F8-quit F9-stop");
+    mvwprintw(w_title, 3, 1, "Pick stmbl-hal pin and press enter.");
 }
 
 void draw_exit() {
@@ -43,54 +50,112 @@ void draw_exit() {
 
 void draw_screen() {
     werase(w_title);
+    werase(w_shell);
     switch(tui_state) {
+        case TUI_SHELL:     draw_shell();   break;
         case TUI_CATEGORY:  draw_cat();     break;
         case TUI_PIN:       draw_pin();     break;
-        case TUI_INPUT:     draw_input();   break;
         case TUI_EXIT:      draw_exit();    break;
     }
-//    refresh();
     box(w_title, 0, 0);
+    box(w_shell, 0, 0);
     wrefresh(w_title);
+    wrefresh(w_shell);
+}
+
+void shell_set_fault() {
+    memset(shell_buffer, 0, sizeof(shell_buffer));
+    strncpy(shell_buffer, "net0.enable=0", SHELL_BUF_SIZE);
+    shell_position = 13;
+    shell_send_flag = 1;
+}
+
+void shell_reset_fault() {
+    memset(shell_buffer, 0, sizeof(shell_buffer));
+    strncpy(shell_buffer, "net0.enable=1", SHELL_BUF_SIZE);
+    shell_position = 13;
+    shell_send_flag = 1;
+}
+
+void shell_clear() {
+    memset(shell_buffer, 0, sizeof(shell_buffer));
+    shell_position = 0;
+}
+
+void shell_back() {
+    if (shell_position > 0) {
+        shell_position--;
+        shell_buffer[shell_position] = '\0';
+    }
+}
+
+void shell_write(int input_key) {
+    if (isprint(input_key)) {
+        if (shell_position < SHELL_BUF_SIZE-1) {
+            shell_buffer[shell_position] = input_key;
+            shell_position++;
+            shell_buffer[shell_position] = '\0';
+        }
+    }
+//    else {
+//        shell_generate_stop();
+//    }
+}
+
+void shell_send() {
+    shell_send_flag = 1; /* reset from connection.c when sent */
+}
+
+void input_shell(int key) {
+    switch (key) {
+        case KEY_F(8):      tui_state=TUI_EXIT;     break;
+        case KEY_F(6):      tui_state=TUI_CATEGORY; break;
+        case KEY_F(7):      tui_state=TUI_PIN;      break;
+        case KEY_F(9):      shell_set_fault();      break;
+        case KEY_F(10):     shell_reset_fault();    break;
+        case KEY_F(11):     shell_clear();          break;
+        case KEY_BACKSPACE: shell_back();           break;
+        case 10 /*enter*/:  shell_send();           break;
+//        case KEY_DOWN:  tui_state=TUI_PIN;          break; /*TODO history*/
+//        case KEY_UP:    tui_state=TUI_CATEGORY;     break; /*TODO history*/
+        default:            shell_write(key);        break;
+    }
 }
 
 void input_cat(int key) {
     switch (key) {
-        case KEY_F(1):  tui_state=TUI_EXIT;         break;
-        case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
-        case KEY_UP:    mvprintw(12, 10, "Up.");    break;
-        default:        tui_state = TUI_PIN;        break;
+        case KEY_F(8):      tui_state=TUI_EXIT;     break;
+        case KEY_F(5):      tui_state=TUI_SHELL;    break;
+        case KEY_F(7):      tui_state=TUI_PIN;      break;
+        case KEY_F(9):      shell_set_fault();      break;
+        case KEY_F(10):     shell_reset_fault();    break;
+        case KEY_F(11):     shell_clear();          break;
+        default:                                    break;
     }
 }
 
 void input_pin(int key) {
     switch (key) {
-        case KEY_F(1):  tui_state=TUI_EXIT;         break;
-        case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
-        case KEY_UP:    mvprintw(12, 10, "Up.");    break;
-        default:        tui_state = TUI_INPUT;      break;
-    }
-}
-
-void input_key(int key) {
-    switch (key) {
-        case KEY_F(1):  tui_state=TUI_EXIT;         break;
-        case KEY_DOWN:  mvprintw(12, 10, "Down.");  break;
-        case KEY_UP:    mvprintw(12, 10, "Up.");    break;
-        default:        tui_state = TUI_EXIT;       break;
+        case KEY_F(8):      tui_state=TUI_EXIT;     break;
+        case KEY_F(5):      tui_state=TUI_SHELL;    break;
+        case KEY_F(6):      tui_state=TUI_CATEGORY; break;
+        case KEY_F(9):      shell_set_fault();      break;
+        case KEY_F(10):     shell_reset_fault();    break;
+        case KEY_F(11):     shell_clear();          break;
+//        case KEY_DOWN:  tui_state=TUI_PIN;          break;
+//        case KEY_UP:    tui_state=TUI_CATEGORY;     break;
+        default:                                    break;
     }
 }
 
 void input_handle() {
     int key = getch();
-    mvprintw(12, 0, "Up/Down:");
     switch(tui_state) {
-        case TUI_CATEGORY:  input_cat(key);     break;
-        case TUI_PIN:       input_pin(key);     break;
-        case TUI_INPUT:     input_key(key);     break;
-        case TUI_EXIT:                          break;
+        case TUI_SHELL:     input_shell(key);       break;
+        case TUI_CATEGORY:  input_cat(key);         break;
+        case TUI_PIN:       input_pin(key);         break;
+        case TUI_EXIT:                              break;
     }
-//    refresh();
 }
 
 void tui_setup() {
@@ -99,10 +164,17 @@ void tui_setup() {
     cbreak();
     noecho();
 
+    /* name of program + help */
     w_title = newwin(5, 80, 0, 0);
     box(w_title, 0, 0);
     refresh();
     wrefresh(w_title);
+
+    /* shell for user input */
+    w_shell = newwin(3, 39, 8, 0);
+    box(w_shell, 0, 0);
+    refresh();
+    wrefresh(w_shell);
 
     /* stmbl status window, used by con_manager */
     w_con_status = newwin(3, 39, 5, 0);

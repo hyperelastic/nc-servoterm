@@ -21,11 +21,14 @@ int con_state;
 /* global additional connection threads */
 pthread_t threads[2];
 
-/* global connection-specific */
+/* global connection-specific variables */
 struct sp_port *port;
 struct sp_port **ports;
 char rx = 0;
-char message[] = "conf0.p\n"; 
+
+/* global connection + display shared variables */
+char *p_shell_buffer;
+int shell_send_flag; /* set to 1 from tui.c */
 
 /* global ncurses-specific */
 WINDOW *w_con_receive;          /* reserved for the receiver thread */
@@ -37,8 +40,8 @@ void con_status_print(char* con_status) {
 //    wclrtoeol(w_con_status);
     wclear(w_con_status);
     mvwprintw(w_con_status, 1, 1, "STMBL is: %s.", con_status);
-    refresh();
     box(w_con_status, 0, 0);
+    refresh();
     wrefresh(w_con_status);
 }
 
@@ -118,7 +121,15 @@ void con_init() {
 }
 
 void con_write() {
-    sp_nonblocking_write(port, &message, sizeof(message));  
+    if (shell_send_flag == 1) {
+        char message[shell_position+1];
+        strncpy(message, shell_buffer, shell_position+1);
+        message[shell_position] = '\n';
+        message[shell_position+1] = '\0';
+        sp_nonblocking_write(port, message, sizeof(message));  
+
+        shell_send_flag = 0;
+    }
 }
 
 void *con_manager(void *_) {
@@ -148,3 +159,7 @@ void *con_manager(void *_) {
     }
     pthread_exit(NULL);
 }
+
+
+
+
