@@ -15,10 +15,11 @@
 
 int main(int argc, char **argv) {
 
-    tui_state = TUI_CATEGORY;
+    tui_state = TUI_SHELL;
     con_state = CON_DETACHED;
 
     tui_setup();
+    draw_screen();
     pthread_create(&threads[0], NULL, con_manager, NULL);
 
     while (1) {

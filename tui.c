@@ -166,32 +166,31 @@ void tui_setup() {
 
     /* name of program + help */
     w_title = newwin(5, 80, 0, 0);
-    box(w_title, 0, 0);
     refresh();
+    box(w_title, 0, 0);
     wrefresh(w_title);
 
     /* shell for user input */
     w_shell = newwin(3, 39, 8, 0);
-    box(w_shell, 0, 0);
     refresh();
+    box(w_shell, 0, 0);
     wrefresh(w_shell);
 
     /* stmbl status window, used by con_manager */
     w_con_status = newwin(3, 39, 5, 0);
-    box(w_con_status, 0, 0);
     refresh();
+    box(w_con_status, 0, 0);
     wrefresh(w_con_status);
 
     /* stmbl output window, used by con_reciever thread */
     w_con_receive = newwin(40, 40, 5, 40);
-    box(w_con_receive, 0, 0);
     refresh();
+    box(w_con_receive, 0, 0);
     wrefresh(w_con_receive);
     mvwin(w_con_receive, 6,41);
     wresize(w_con_receive, 38, 38);
     scrollok(w_con_receive, TRUE);
     wclear(w_con_receive);
-    refresh();
     wrefresh(w_con_receive);
 }
 
