@@ -48,19 +48,33 @@ void draw_exit() {
     mvwprintw(w_title, 3, 1, "Exiting. Press any key to quit the program.");
 }
 
+void draw_con_status(char* con_status) {
+    mvwprintw(w_con_status, 1, 1, "STMBL is: %s.", con_status);
+}
+
 void draw_screen() {
     werase(w_title);
     werase(w_shell);
+    werase(w_con_status);
     switch(tui_state) {
         case TUI_SHELL:     draw_shell();   break;
         case TUI_CATEGORY:  draw_cat();     break;
         case TUI_PIN:       draw_pin();     break;
         case TUI_EXIT:      draw_exit();    break;
     }
+    switch(con_state) {
+       case CON_DETACHED:   draw_con_status("detached");    break;
+       case CON_STARTING:   draw_con_status("connecting");  break;
+       case CON_CONNECTED:  draw_con_status("connected");   break;
+       case CON_ERROR:                                      break;
+    }
     box(w_title, 0, 0);
     box(w_shell, 0, 0);
-    wrefresh(w_title);
-    wrefresh(w_shell);
+    box(w_con_status, 0, 0);
+    wnoutrefresh(w_con_status);
+    wnoutrefresh(w_title);
+    wnoutrefresh(w_shell);
+    doupdate();
 }
 
 void shell_set_fault() {
@@ -148,8 +162,7 @@ void input_pin(int key) {
     }
 }
 
-void input_handle() {
-    int key = getch();
+void input_handle(int key) {
     switch(tui_state) {
         case TUI_SHELL:     input_shell(key);       break;
         case TUI_CATEGORY:  input_cat(key);         break;
@@ -161,6 +174,7 @@ void input_handle() {
 void tui_setup() {
     initscr();
     keypad(stdscr, 1);
+    nodelay(stdscr, 1);
     cbreak();
     noecho();
 

@@ -36,13 +36,12 @@ WINDOW *w_con_status;           /* reserved for the con_manager thread */
 
 
 void con_status_print(char* con_status) {
-//    wmove(w_con_status, 1, 1);
-//    wclrtoeol(w_con_status);
-    wclear(w_con_status);
+//    werase(w_con_status);
     mvwprintw(w_con_status, 1, 1, "STMBL is: %s.", con_status);
-    box(w_con_status, 0, 0);
-//    refresh();
-    wrefresh(w_con_status);
+//    box(w_con_status, 0, 0);
+    //wrefresh(w_con_status);
+    //wnoutrefresh(w_con_status);
+    //doupdate();
 }
 
 void con_port_ping(void) {
@@ -74,30 +73,6 @@ void con_port_ping(void) {
             con_state = CON_DETACHED;
         }
     }
-
-}
-
-void *con_reciever(void *_) {
-    enum sp_return error;
-//    char rx = 0;  
-    while((tui_state != TUI_EXIT) && (con_state != CON_ERROR)) {  
-        sp_nonblocking_read(port, &rx, sizeof(rx));
-        if isprint(rx) {  
-            waddch(w_con_receive, rx);
-        }
-        else if (rx==10) { //\n
-            waddch(w_con_receive, rx);
-        }
-        rx = 0;
-
-        error = sp_input_waiting(port);
-        if (error < 0) {
-            con_state = CON_ERROR;
-        }
-
-        usleep(1e2);
-    }  
-    pthread_exit(NULL);
 }
 
 void con_init() {
@@ -113,11 +88,29 @@ void con_init() {
         sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
     
         con_state = CON_CONNECTED;
-        pthread_create(&threads[1], NULL, con_reciever, NULL);
     }
     else {
         con_state = CON_ERROR;
     }
+}
+
+void con_recieve() {
+    enum sp_return error;
+
+    sp_nonblocking_read(port, &rx, sizeof(rx));
+    if isprint(rx) {  
+        waddch(w_con_receive, rx);
+    }
+    else if (rx==10) { //\n
+        waddch(w_con_receive, rx);
+    }
+    rx = 0;
+
+    error = sp_input_waiting(port);
+    if (error < 0) {
+        con_state = CON_ERROR;
+    }
+    
 }
 
 void con_write() {
@@ -132,32 +125,26 @@ void con_write() {
     }
 }
 
-void *con_manager(void *_) {
-    while( tui_state != TUI_EXIT) {
+void con_handle() {
         switch(con_state) {
             case CON_DETACHED:
-                con_status_print("detached");
+//                con_status_print("detached");
                 con_port_ping();
                 break;
             case CON_STARTING:
-                con_status_print("connecting");
+//                con_status_print("connecting");
                 con_init(); /* also starts the reciever thread */
                 break;
             case CON_CONNECTED:
-                con_status_print("connected");
-                //refresh();
-                wrefresh(w_con_receive);
+//                con_status_print("connected");
                 con_write();
+                con_recieve();
                 break;
             case CON_ERROR:
-                pthread_join(threads[1], NULL);
                 sp_close(port);
                 con_state = CON_DETACHED;
                 break;
         }
-        usleep(1e6);
-    }
-    pthread_exit(NULL);
 }
 
 

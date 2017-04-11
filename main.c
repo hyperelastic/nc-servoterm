@@ -11,7 +11,9 @@
 #include "global.h"
 #include "connection.h"
 #include "tui.h"
+#include "unistd.h"
 
+int key = 0;
 
 int main(int argc, char **argv) {
 
@@ -20,14 +22,23 @@ int main(int argc, char **argv) {
 
     tui_setup();
     draw_screen();
-    pthread_create(&threads[0], NULL, con_manager, NULL);
 
-    while (1) {
-        input_handle();
-        draw_screen();
-        if (tui_state == TUI_EXIT) {
-            break;
+    int i = 0;
+    while (tui_state != TUI_EXIT) {
+        key = getch();  /* non blocking */
+
+        if (key) {
+            input_handle(key);
+            draw_screen();
         }
+
+        if (i==1e4) {
+            draw_screen();
+            i = 0;
+        }
+
+        i++;
+        usleep(1e2);
     }
 
     getch();

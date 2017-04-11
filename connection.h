@@ -15,10 +15,10 @@
 
 void con_status_print(char* con_status);    /* puts STMBL response in window */
 void con_port_ping(void);                   /* checks if STMBL is reachable */
-void *con_reciever(void *_);                /* reads+parses from STMBL */
+void con_recieve();                         /* reads+parses from STMBL */
 void con_init();                            /* sets port */
 void con_write();                           /* sends global message to STMBL */
-void *con_manager(void *_);                 /* manages separate from main() */
+void con_handle();                          /* manages connection */
 
 
 #endif /* connection_h */
