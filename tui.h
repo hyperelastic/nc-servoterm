@@ -1,7 +1,7 @@
 /*
  * file: tui.h
  *
- * Text user interface. Runs in main().
+ * Text user interface. Doesn't directly deal with connection to stmbl.
  *
  */
 
@@ -9,15 +9,11 @@
 #define tui_h
 
 
-#include <ctype.h>
-#include <string.h>
-
-
 void draw_shell(); 
 void draw_cat();
 void draw_pin();
 void draw_exit();
-void draw_con_status(char* con_status);
+void draw_con(char* description);
 void draw_screen();
 
 void shell_set_fault();

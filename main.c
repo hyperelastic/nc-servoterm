@@ -13,7 +13,6 @@
 #include "tui.h"
 #include "unistd.h"
 
-int key = 0;
 
 int main(int argc, char **argv) {
 
@@ -23,16 +22,15 @@ int main(int argc, char **argv) {
     tui_setup();
     draw_screen();
 
+    int key = 0;
     int i = 0;
-    while (tui_state != TUI_EXIT) {
-        key = getch();  /* non blocking */
+    while (tui_state != TUI_EXIT) { /* fast loop ~10kHz */
+        con_handle();
 
-        if (key) {
-            input_handle(key);
-            draw_screen();
-        }
+        key = getch();              /* set to non blocking in tui/tui_setup() */
+        input_handle(key);
 
-        if (i==1e4) {
+        if (i==2e2) {               /* slow ~50Hz loop */
             draw_screen();
             i = 0;
         }
@@ -43,7 +41,6 @@ int main(int argc, char **argv) {
 
     getch();
     tui_cleanup();
-    pthread_exit(NULL);
 }
 
 

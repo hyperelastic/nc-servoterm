@@ -6,7 +6,6 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <pthread.h>
 #include <string.h>
 #include <libserialport.h>
 
@@ -15,34 +14,19 @@
 
 
 /* global program states */
-int tui_state;
 int con_state;
 
-/* global additional connection threads */
-pthread_t threads[2];
+/* global connection + tui shared variables */
+int shell_send_flag;            /* set to 1 from tui.c */
 
-/* global connection-specific variables */
+/* global ncurses-specific */
+WINDOW *w_con_receive;          /* reserved for the receiver thread */
+
+/* local */
 struct sp_port *port;
 struct sp_port **ports;
 char rx = 0;
 
-/* global connection + display shared variables */
-char *p_shell_buffer;
-int shell_send_flag; /* set to 1 from tui.c */
-
-/* global ncurses-specific */
-WINDOW *w_con_receive;          /* reserved for the receiver thread */
-WINDOW *w_con_status;           /* reserved for the con_manager thread */
-
-
-void con_status_print(char* con_status) {
-//    werase(w_con_status);
-    mvwprintw(w_con_status, 1, 1, "STMBL is: %s.", con_status);
-//    box(w_con_status, 0, 0);
-    //wrefresh(w_con_status);
-    //wnoutrefresh(w_con_status);
-    //doupdate();
-}
 
 void con_port_ping(void) {
     char *descr;
@@ -128,17 +112,14 @@ void con_write() {
 void con_handle() {
         switch(con_state) {
             case CON_DETACHED:
-//                con_status_print("detached");
                 con_port_ping();
                 break;
             case CON_STARTING:
-//                con_status_print("connecting");
-                con_init(); /* also starts the reciever thread */
+                con_init();
                 break;
             case CON_CONNECTED:
-//                con_status_print("connected");
-                con_write();
                 con_recieve();
+                con_write();
                 break;
             case CON_ERROR:
                 sp_close(port);
