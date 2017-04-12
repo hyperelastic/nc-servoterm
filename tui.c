@@ -151,11 +151,7 @@ void menu_enter(MENU *menu) {
     memset(shell_buffer, 0, sizeof(shell_buffer));
     cur_item = current_item(menu);
     strncpy(shell_buffer, item_name(cur_item), sizeof(shell_buffer));
-    /* TODO TODO TODO TODO TODO TODO TODO */
-    /* TODO variable shell position  TODO */
-    /* TODO TODO TODO TODO TODO TODO TODO */
-    shell_position = 13;                                                
-    shell_send_flag = 1;
+    shell_position = strlen(item_name(cur_item));                                                
 
     tui_state = TUI_SHELL;
 }
