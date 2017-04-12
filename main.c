@@ -1,8 +1,9 @@
 //#include <stdlib.h>
 //#include <string.h>
 //#include <errno.h>
-//#include <unistd.h>
+#include <unistd.h>
 //#include <ncurses.h>
+//#include <menu.h>
 //#include <pthread.h>
 //#include <libserialport.h>
 //#include <ctype.h>
@@ -11,7 +12,6 @@
 #include "global.h"
 #include "connection.h"
 #include "tui.h"
-#include "unistd.h"
 
 
 int main(int argc, char **argv) {
@@ -39,7 +39,10 @@ int main(int argc, char **argv) {
         usleep(1e2);
     }
 
+    draw_screen();
+    nodelay(stdscr, 0); /* for blocking getch() on exit */
     getch();
+
     tui_cleanup();
 }
 

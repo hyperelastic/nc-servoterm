@@ -17,10 +17,10 @@
 int con_state;
 
 /* global connection + tui shared variables */
-int shell_send_flag;            /* set to 1 from tui.c */
+int shell_send_flag;    /* set to 1 from tui.c */
 
 /* global ncurses-specific */
-WINDOW *w_con_receive;          /* reserved for the receiver thread */
+WINDOW *w_con_receive;
 
 /* local */
 struct sp_port *port;

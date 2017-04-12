@@ -47,6 +47,6 @@ extern WINDOW *w_title;
 extern WINDOW *w_shell;
 extern WINDOW *w_con_receive;
 extern WINDOW *w_con_status;
-
+extern WINDOW *w_hal_categories;
 
 #endif /* global_h */

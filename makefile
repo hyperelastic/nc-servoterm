@@ -2,7 +2,7 @@ src = $(wildcard *.c)
 obj = $(src:.c=.o)
 dep = $(obj:.o=.d)
 
-LDFLAGS = -lncurses -lmenu -lpthread -lserialport
+LDFLAGS = -lncurses -lmenu -lserialport
 
 main: $(obj)
 	$(CC) -o $@ $^ $(LDFLAGS)
