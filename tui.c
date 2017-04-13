@@ -164,10 +164,10 @@ void input_shell(int key) {
         case KEY_F(7):      shell_clear();          break;
         case KEY_F(8):      tui_state=TUI_EXIT;     break;
         case KEY_BACKSPACE: shell_back();           break;
-        case 10 /*enter*/:  shell_send();           break;
         case KEY_DOWN:      shell_down();           break; /* TODO history*/
 //        case KEY_UP:    tui_state=TUI_CATEGORY;     break; /* TODO history*/
-        default:            shell_write(key);        break;
+        case 10 /*enter*/:  shell_send();           break;
+        default:            shell_write(key);       break;
     }
 }
 
@@ -251,7 +251,7 @@ void tui_setup() {
     /* hal categories menu */
     hal_pins_items = construct_menu_items(hal_pins_list, n_hal_pins);
     hal_pins_menu = new_menu((ITEM **)hal_pins_items);
-    w_pins = construct_menu_win(hal_pins_menu, 19, 39, 10, 0);
+    w_pins = construct_menu_win(hal_pins_menu, 14, 39, 10, 0);
 
     /* stmbl connection output window, also accesed in connection.c */
     w_con_receive = newwin(24, 40, 0, 40);
