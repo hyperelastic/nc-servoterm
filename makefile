@@ -1,15 +1,18 @@
-src = $(wildcard *.c)
-obj = $(src:.c=.o)
-dep = $(obj:.o=.d)
+src=$(wildcard *.c)
+obj=$(src:.c=.o)
+dep=$(obj:.o=.d)
+CC=gcc
 
-LDFLAGS = -lncurses -lmenu -lserialport
+LDFLAGS=$(shell pkg-config --libs libserialport menu ncurses)
+CFLAGS=-Wall -pedantic -std=c99 $(shell pkg-config \
+	   								--cflags libserialport menu ncurses)
 
 main: $(obj)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 -include $(dep)
 %d: %.c
-	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
+	@$(CC) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
 .PHONY: clean
 clean:
