@@ -64,10 +64,10 @@ void draw_screen() {
         case TUI_EXIT:      draw_exit();    break;
     }
     switch(con_state) {
-       case CON_DETACHED:   draw_con("detached");    break;
-       case CON_STARTING:   draw_con("starting");    break;
-       case CON_CONNECTED:  draw_con("connected");   break;
-       case CON_ERROR:                               break;
+       case CON_DETACHED:   draw_con("detached");   break;
+       case CON_STARTING:   draw_con("starting");   break;
+       case CON_CONNECTED:  draw_con("connected");  break;
+       case CON_ERROR:                              break;
     }
     box(w_title, 0, 0);
     box(w_shell, 0, 0);
@@ -146,8 +146,6 @@ void pin_pgup() {
 
 void pin_enter() {
     ITEM *cur_item; 
-    int i;
-    char name_cur_item[20];
 
     memset(shell_buffer, 0, sizeof(shell_buffer));
     cur_item = current_item(hal_pins_menu);
@@ -181,7 +179,7 @@ void input_pin(int key) {
         case KEY_UP:        pin_up();                   break;
         case KEY_NPAGE:     pin_pgdown();               break;
         case KEY_PPAGE:     pin_pgup();                 break;
-        case 10 /*enter*/:  pin_enter(hal_pins_menu);   break;
+        case 10 /*enter*/:  pin_enter();                break;
         default:                                        break;
     }
 }

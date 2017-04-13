@@ -82,7 +82,7 @@ void con_recieve() {
     enum sp_return error;
 
     sp_nonblocking_read(port, &rx, sizeof(rx));
-    if isprint(rx) {  
+    if (isprint(rx)) {  
         waddch(w_con_receive, rx);
     }
     else if (rx==10) { //\n

@@ -4,10 +4,9 @@ dep=$(obj:.o=.d)
 CC=gcc
 
 LDFLAGS=$(shell pkg-config --libs libserialport menu ncurses)
-CFLAGS=-Wall -pedantic -std=c99 $(shell pkg-config \
-	   								--cflags libserialport menu ncurses)
+CFLAGS=-Wall -Wextra -pedantic -std=c99 $(shell pkg-config --cflags libserialport menu ncurses)
 
-main: $(obj)
+nc-servoterm: $(obj)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 -include $(dep)
@@ -16,7 +15,7 @@ main: $(obj)
 
 .PHONY: clean
 clean:
-	rm -f $(obj) main
+	rm -f $(obj) nc-servoterm
 
 .PHONY: cleandep
 cleandep:
