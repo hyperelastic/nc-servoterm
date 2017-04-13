@@ -26,7 +26,7 @@ WINDOW *w_title;
 WINDOW *w_shell;
 WINDOW *w_con_status;
 WINDOW *w_con_receive;
-WINDOW *w_hal_categories;
+WINDOW *w_pins;
 
 /* global connection+display variables */
 char shell_buffer[SHELL_BUF_SIZE] = "";
@@ -35,29 +35,20 @@ int shell_send_flag = 0;
 
 
 void draw_shell() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode shell");
-    mvwprintw(w_title, 2, 1, "F5-console F6-category F7-pin F8-quit"
-           " F9-stop F10-start F11-clear");
-    mvwprintw(w_title, 3, 1, "Input command in shell and send with enter.");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM shell-write,enter,up,dwn");
+    mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
     mvwprintw(w_shell, 1, 1, ">");
     mvwprintw(w_shell, 1, 3, shell_buffer);
 }
 
-void draw_cat() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode categories");
-    mvwprintw(w_title, 2, 1, "F5-console F6-category F7-pin F8-quit F9-stop");
-    mvwprintw(w_title, 3, 1, "Pick stmbl-hal category and press enter.");
-}
-
 void draw_pin() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode pins");
-    mvwprintw(w_title, 2, 1, "F5-console F6-category F7-pin F8-quit F9-stop");
-    mvwprintw(w_title, 3, 1, "Pick stmbl-hal pin and press enter.");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM pin-(pg)up,(pg)down,entr");
+    mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
 }
 
 void draw_exit() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM, mode exit");
-    mvwprintw(w_title, 3, 1, "Exiting. Press any key to quit the program.");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM exit");
+    mvwprintw(w_title, 2, 1, "Exiting. Press any key to quit.");
 }
 
 void draw_con(char* description) {
@@ -67,10 +58,8 @@ void draw_con(char* description) {
 void draw_screen() {
     werase(w_title);
     werase(w_shell);
-//    werase(w_con_status);
     switch(tui_state) {
         case TUI_SHELL:     draw_shell();   break;
-        case TUI_CATEGORY:  draw_cat();     break;
         case TUI_PIN:       draw_pin();     break;
         case TUI_EXIT:      draw_exit();    break;
     }
@@ -87,8 +76,7 @@ void draw_screen() {
     wnoutrefresh(w_con_status);
     wnoutrefresh(w_title);
     wnoutrefresh(w_shell);
-    wnoutrefresh(w_hal_categories);
-//    post_menu(hal_categories_menu);
+    wnoutrefresh(w_pins);
     doupdate();
 }
 
@@ -119,37 +107,50 @@ void shell_back() {
     }
 }
 
+void shell_down() {
+    tui_state = TUI_PIN; /* TODO history, only switch state when reached end */
+}
+
 void shell_write(int input_key) {
     if (isprint(input_key)) {
         if (shell_position < SHELL_BUF_SIZE-1) {
             shell_buffer[shell_position] = input_key;
             shell_position++;
             shell_buffer[shell_position] = '\0';
+//TODO        shell_buffer[shell_position++] = '\0';
         }
     }
-//    else {
-//    }
 }
 
 void shell_send() {
     shell_send_flag = 1; /* reset from connection.c when sent */
 }
 
-void menu_down(MENU *menu) {
-    menu_driver(hal_categories_menu, REQ_DOWN_ITEM);
+void pin_down() {
+    menu_driver(hal_pins_menu, REQ_DOWN_ITEM);
 }
 
-void menu_up(MENU *menu) {
-    menu_driver(hal_categories_menu, REQ_UP_ITEM);
+void pin_up() {
+    int i = item_index(current_item(hal_pins_menu));
+    if (i != 0) menu_driver(hal_pins_menu, REQ_UP_ITEM);
+    else tui_state = TUI_SHELL;
 }
 
-void menu_enter(MENU *menu) {
+void pin_pgdown() {
+    menu_driver(hal_pins_menu, REQ_SCR_DPAGE);
+}
+
+void pin_pgup() {
+    menu_driver(hal_pins_menu, REQ_SCR_UPAGE);
+}
+
+void pin_enter() {
     ITEM *cur_item; 
     int i;
     char name_cur_item[20];
 
     memset(shell_buffer, 0, sizeof(shell_buffer));
-    cur_item = current_item(menu);
+    cur_item = current_item(hal_pins_menu);
     strncpy(shell_buffer, item_name(cur_item), sizeof(shell_buffer));
     shell_position = strlen(item_name(cur_item));                                                
 
@@ -158,51 +159,36 @@ void menu_enter(MENU *menu) {
 
 void input_shell(int key) {
     switch (key) {
+        case KEY_F(5):      shell_set_fault();      break;
+        case KEY_F(6):      shell_reset_fault();    break;
+        case KEY_F(7):      shell_clear();          break;
         case KEY_F(8):      tui_state=TUI_EXIT;     break;
-        case KEY_F(6):      tui_state=TUI_CATEGORY; break;
-        case KEY_F(7):      tui_state=TUI_PIN;      break;
-        case KEY_F(9):      shell_set_fault();      break;
-        case KEY_F(10):     shell_reset_fault();    break;
-        case KEY_F(11):     shell_clear();          break;
         case KEY_BACKSPACE: shell_back();           break;
         case 10 /*enter*/:  shell_send();           break;
-//        case KEY_DOWN:  tui_state=TUI_PIN;          break; /* TODO history*/
+        case KEY_DOWN:      shell_down();           break; /* TODO history*/
 //        case KEY_UP:    tui_state=TUI_CATEGORY;     break; /* TODO history*/
         default:            shell_write(key);        break;
     }
 }
 
-void input_cat(int key) { /* TODO HAL category menu */
+void input_pin(int key) {
     switch (key) {
-        case KEY_F(8):  tui_state=TUI_EXIT;                     break;
-        case KEY_F(5):  tui_state=TUI_SHELL;                    break;
-        case KEY_F(7):  tui_state=TUI_PIN;                      break;
-        case KEY_F(9):  shell_set_fault();                      break;
-        case KEY_F(10): shell_reset_fault();                    break;
-        case KEY_F(11): shell_clear();                          break;
-        case KEY_DOWN:  menu_down(hal_categories_menu);         break;
-        case KEY_UP:    menu_up(hal_categories_menu);           break;
-        case 10 /*enter*/:  menu_enter(hal_categories_menu);    break;
-        default:                                                break;
-    }
-}
-
-void input_pin(int key) { /* TODO HAL pin menu */
-    switch (key) {
-        case KEY_F(8):      tui_state=TUI_EXIT;     break;
-        case KEY_F(5):      tui_state=TUI_SHELL;    break;
-        case KEY_F(6):      tui_state=TUI_CATEGORY; break;
-        case KEY_F(9):      shell_set_fault();      break;
-        case KEY_F(10):     shell_reset_fault();    break;
-        case KEY_F(11):     shell_clear();          break;
-        default:                                    break;
+        case KEY_F(5):      shell_set_fault();          break;
+        case KEY_F(6):      shell_reset_fault();        break;
+        case KEY_F(7):      shell_clear();              break;
+        case KEY_F(8):      tui_state=TUI_EXIT;         break;
+        case KEY_DOWN:      pin_down();                 break;
+        case KEY_UP:        pin_up();                   break;
+        case KEY_NPAGE:     pin_pgdown();               break;
+        case KEY_PPAGE:     pin_pgup();                 break;
+        case 10 /*enter*/:  pin_enter(hal_pins_menu);   break;
+        default:                                        break;
     }
 }
 
 void input_handle(int key) {
     switch(tui_state) {
         case TUI_SHELL:     input_shell(key);       break;
-        case TUI_CATEGORY:  input_cat(key);         break;
         case TUI_PIN:       input_pin(key);         break;
         case TUI_EXIT:                              break;
     }
@@ -222,23 +208,15 @@ ITEM **construct_menu_items(char *items_list[], int n_items) {
     return(items);
 }
 
-void destruct_menu(MENU *menu, ITEM **items, int n_items) {
-    unpost_menu(menu);
-    free_menu(menu);
-    int i;
-    for (i=0; i<n_items; ++i) {
-        free_item(items[i]);
-    }
-}
-
-WINDOW *construct_menu_win(MENU *menu, char* name, int nlines, int ncols, int begin_y, int begin_x){
+WINDOW *construct_menu_win(MENU *menu, int nlines, int ncols, int begin_y,
+                            int begin_x){
     WINDOW *menu_win = newwin(nlines, ncols, begin_y, begin_x);
     keypad(menu_win, TRUE);
     set_menu_win(menu, menu_win);
-    set_menu_sub(menu, derwin(menu_win, nlines-4, ncols-4, 3, 1));
+    set_menu_format(menu, nlines-2, 1);
+    set_menu_sub(menu, derwin(menu_win, nlines-2, ncols-4, 1, 1));
     set_menu_mark(menu, " * ");
     box(menu_win, 0, 0);
-    mvwprintw(menu_win, 1, 1, name);
     refresh();
     post_menu(menu);
     wrefresh(menu_win);
@@ -253,47 +231,53 @@ void tui_setup() {
     noecho();
 
     /* name of program + help */
-    w_title = newwin(5, 80, 0, 0);
+    w_title = newwin(4, 39, 0, 0);
     refresh();
     box(w_title, 0, 0);
     wrefresh(w_title);
 
-    /* shell for user input */
-    w_shell = newwin(3, 39, 8, 0);
-    refresh();
-    box(w_shell, 0, 0);
-    wrefresh(w_shell);
-
     /* stmbl connection status window */
-    w_con_status = newwin(3, 39, 5, 0);
+    w_con_status = newwin(3, 39, 4, 0);
     refresh();
     box(w_con_status, 0, 0);
     wrefresh(w_con_status);
 
+    /* shell for user input */
+    w_shell = newwin(3, 39, 7, 0);
+    refresh();
+    box(w_shell, 0, 0);
+    wrefresh(w_shell);
+
+    /* hal categories menu */
+    hal_pins_items = construct_menu_items(hal_pins_list, n_hal_pins);
+    hal_pins_menu = new_menu((ITEM **)hal_pins_items);
+    w_pins = construct_menu_win(hal_pins_menu, 19, 39, 10, 0);
+
     /* stmbl connection output window, also accesed in connection.c */
-    w_con_receive = newwin(40, 40, 5, 40);
+    w_con_receive = newwin(24, 40, 0, 40);
     refresh();
     box(w_con_receive, 0, 0);
     wrefresh(w_con_receive);
-    mvwin(w_con_receive, 6,41);
-    wresize(w_con_receive, 38, 38);
+    mvwin(w_con_receive, 1,41);
+    wresize(w_con_receive, 22, 38);
     scrollok(w_con_receive, TRUE);
     wclear(w_con_receive);
     wrefresh(w_con_receive);
-
-    /* hal categories */
-    hal_categories = construct_menu_items(hal_categories_list, n_hal_categories);
-    hal_categories_menu = new_menu((ITEM **)hal_categories);
-    w_hal_categories = construct_menu_win(hal_categories_menu, "HAL categories",
-                        19, 39, 11, 0);
 }
 
 void tui_cleanup() {
+    int i;
+    unpost_menu(hal_pins_menu);
+    free_menu(hal_pins_menu);
+    for (i=0; i<n_hal_pins; ++i) {
+        free_item(hal_pins_items[i]);
+    }
+
     delwin(w_title);
     delwin(w_con_receive);
     delwin(w_con_status);
     delwin(w_shell);
-    delwin(w_hal_categories);
+    delwin(w_pins);
     erase();
     refresh();
     endwin();

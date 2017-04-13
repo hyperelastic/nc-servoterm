@@ -54,8 +54,7 @@ int n_hal_categories = sizeof(hal_categories_list)/
 
 
 /* make sure, this matches with "n_hal_pins" */
-char **hal_pins_list[] = {
-    (char *[])   {
+char *hal_pins_list[] = {
         /*"adc",        */
         "adc0.rt_calc_time",
         "adc0.frt_calc_time",
@@ -70,10 +69,8 @@ char **hal_pins_list[] = {
         "adc0.sin_gain ",
         "adc0.cos_gain ",
         "adc0.sin_offset ",
-        "adc0.cos_offset "
-    },
+        "adc0.cos_offset ",
 
-    (char *[])   {
         /*"cauto",      */
         "cauto0.rt_calc_time",
         "cauto0.frt_calc_time",
@@ -91,10 +88,8 @@ char **hal_pins_list[] = {
         "cauto0.fb_in ",
         "cauto0.fb_out",
         "cauto0.cur ",
-        "cauto0.time "
-    },
+        "cauto0.time ",
 
-    (char *[])   {
         /*"curpid",     */
         "curpid0.rt_calc_time",
         "curpid0.frt_calc_time",
@@ -122,10 +117,8 @@ char **hal_pins_list[] = {
         "curpid0.id_error",
         "curpid0.iq_error",
         "curpid0.res",
-        "curpid0.volt_res"
-    },
+        "curpid0.volt_res",
 
-    (char *[])   {
         /*"dq",         */
         "dq0.rt_calc_time",
         "dq0.frt_calc_time",
@@ -140,20 +133,16 @@ char **hal_pins_list[] = {
         "dq0.b",
         "dq0.c",
         "dq0.d",
-        "dq0.q"
-    },
+        "dq0.q",
 
-    (char *[])   {
         /*"en",         */
         "en0.rt_calc_time",
         "en0.frt_calc_time",
         "en0.rt_prio",
         "en0.frt_prio",
         "en0.en",
-        "en0.txen"
-    },
+        "en0.txen",
 
-    (char *[])   {
         /*"enc_cmd",    */
         "enc_cmd0.rt_calc_time",
         "enc_cmd0.frt_calc_time",
@@ -163,10 +152,8 @@ char **hal_pins_list[] = {
         "enc_cmd0.pos",
         "enc_cmd0.index",
         "enc_cmd0.a",
-        "enc_cmd0.b"
-    },
+        "enc_cmd0.b",
 
-    (char *[])   {
         /*"enc_fb",     */
         "enc_fb0.rt_calc_time",
         "enc_fb0.frt_calc_time",
@@ -188,10 +175,8 @@ char **hal_pins_list[] = {
         "enc_fb0.error",
         "enc_fb0.amp",
         "enc_fb0.s",
-        "enc_fb0.c"
-    },
+        "enc_fb0.c",
 
-    (char *[])   {
         /*"encm",       */
         "encm0.rt_calc_time",
         "encm0.frt_calc_time",
@@ -199,14 +184,9 @@ char **hal_pins_list[] = {
         "encm0.frt_prio",
         "encm0.pos",
         "encm0.error",
-    },
-
-//    (char *[])   {
+ 
 //        /*"encs",       */
-//
-//    },
 
-    (char *[])   {
         /*"fault",      */
         "fault0.rt_calc_time",
         "fault0.frt_calc_time",
@@ -265,10 +245,8 @@ char **hal_pins_list[] = {
         "fault0.scale",
         "fault0.led_green",
         "fault0.led_red",
-        "fault0.state"
-    },
+        "fault0.state",
 
-    (char *[])   {
         /*"hv",         */
         "hv0.rt_calc_time",
         "hv0.frt_calc_time",
@@ -290,10 +268,8 @@ char **hal_pins_list[] = {
         "hv0.dc_cur_sim",
         "hv0.ac_cur_sim",
         "hv0.iq ",
-        "hv0.rev "
-    },
+        "hv0.rev ",
 
-    (char *[])   {
         /*"hyper",      */
         "hyper0.rt_calc_time",
         "hyper0.frt_calc_time",
@@ -302,10 +278,8 @@ char **hal_pins_list[] = {
         "hyper0.pos",
         "hyper0.error",
         "hyper0.status",
-        "hyper0.read_status"
-    },
+        "hyper0.read_status",
 
-    (char *[])   {
         /*"idq",        */
         "idq0.rt_calc_time",
         "idq0.frt_calc_time",
@@ -316,10 +290,8 @@ char **hal_pins_list[] = {
         "idq0.pos ",
         "idq0.polecount ",
         "idq0.a",
-        "idq0.b"
-    },
+        "idq0.b",
 
-    (char *[])   {
         /*"io",         */
         "io0.rt_calc_time",
         "io0.frt_calc_time",
@@ -328,10 +300,8 @@ char **hal_pins_list[] = {
         "io0.fan ",
         "io0.red ",
         "io0.green ",
-        "io0.brake "
-    },
+        "io0.brake ",
 
-    (char *[])   {
         /*"pid",        */
         "pid0.rt_calc_time",
         "pid0.frt_calc_time",
@@ -381,10 +351,8 @@ char **hal_pins_list[] = {
         "pid0.vel_sat",
         "pid0.acc_sat",
         "pid0.torque_sat",
-        "pid0.saturated"
-    },
+        "pid0.saturated",
 
-    (char *[])   {
         /*"pmsm",       */
         "pmsm0.rt_calc_time",
         "pmsm0.frt_calc_time",
@@ -408,10 +376,8 @@ char **hal_pins_list[] = {
         "pmsm0.drop_q",
         "pmsm0.drop_d",
         "pmsm0.drop_v",
-        "pmsm0.drop_exp"
-    },
+        "pmsm0.drop_exp",
 
-    (char *[])   {
         /*"pmsm_limits",*/
         "pmsm_limits0.rt_calc_time",
         "pmsm_limits0.frt_calc_time",
@@ -435,18 +401,12 @@ char **hal_pins_list[] = {
         "pmsm_limits0.abs_max_torque",
         "pmsm_limits0.abs_max_vel",
         "pmsm_limits0.iq ",
-        "pmsm_limits0.indq "
-    },
+        "pmsm_limits0.indq ",
 
-//    (char *[])   {
 //        /*"pmsm_t2c",   */
-//    },
 
-//    (char *[])   {
 //        /*"probe",      */
-//    },
 
-    (char *[])   {
         /*"res",        */
         "res0.rt_calc_time",
         "res0.frt_calc_time",
@@ -459,10 +419,8 @@ char **hal_pins_list[] = {
         "res0.sin ",
         "res0.cos ",
         "res0.enable",
-        "res0.error"
-    },
+        "res0.error",
 
-    (char *[])   {
         /*"rev",        */
         "rev0.rt_calc_time",
         "rev0.frt_calc_time",
@@ -477,10 +435,8 @@ char **hal_pins_list[] = {
         "rev1.frt_prio",
         "rev1.in ",
         "rev1.out",
-        "rev1.rev "
-    },
+        "rev1.rev ",
 
-    (char *[])   {
         /*"sim",        */
         "sim0.rt_calc_time",
         "sim0.frt_calc_time",
@@ -497,10 +453,8 @@ char **hal_pins_list[] = {
         "sim0.square",
         "sim0.vel",
         "sim0.res ",
-        "sim0.offset"
-    },
+        "sim0.offset",
 
-    (char *[])   {
         /*"sserial",    */
         "sserial0.rt_calc_time",
         "sserial0.frt_calc_time",
@@ -523,10 +477,8 @@ char **hal_pins_list[] = {
         "sserial0.out1",
         "sserial0.out2",
         "sserial0.out3",
-        "sserial0.enable"
-    },
+        "sserial0.enable",
 
-    (char *[])   {
         /*"stp",        */
         "stp0.rt_calc_time",
         "stp0.frt_calc_time",
@@ -541,10 +493,8 @@ char **hal_pins_list[] = {
         "stp0.acc_out",
         "stp0.max_vel ",
         "stp0.max_acc ",
-        "stp0.dtg"
-    },
+        "stp0.dtg",
 
-    (char *[])   {
         /*"term",       */
         "term0.rt_calc_time",
         "term0.frt_calc_time",
@@ -582,9 +532,7 @@ char **hal_pins_list[] = {
         "term0.jogpos",
         "term0.jogging",
         "term0.tim2_rv",
-    },
 
-    (char *[])   {
         /*"vel",        */
         "vel0.rt_calc_time",
         "vel0.frt_calc_time",
@@ -621,10 +569,8 @@ char **hal_pins_list[] = {
         "vel1.torque ",
         "vel1.vel_ff",
         "vel1.en ",
-        "vel1.pos_error"
-    },
+        "vel1.pos_error",
 
-    (char *[])   {
         /*"vel_int",    */
         "vel_int0.rt_calc_time",
         "vel_int0.frt_calc_time",
@@ -636,44 +582,13 @@ char **hal_pins_list[] = {
         "vel_int0.vel_out",
         "vel_int0.wd",
         "vel_int0.error"
-    },
 
-//    (char *[])   {
 //        /*"yaskawa"     */
-//    }
+
 };
 
-/* match number with "hal_pins_list" */
-int n_hal_pins[] = {
-/*"adc",        */  14, 
-/*"cauto",      */  17,
-/*"curpid",     */  27,
-/*"dq",         */  14,
-/*"en",         */  6,
-/*"enc_cmd",    */  9,
-/*"enc_fb",     */  21,
-/*"encm",       */  6,
-///*"encs",       */  1,
-/*"fault",      */  58,
-/*"hv",         */  21,
-/*"hyper",      */  8,
-/*"idq",        */  10,
-/*"io",         */  8,
-/*"pid",        */  49,
-/*"pmsm",       */  23,
-/*"pmsm_limits",*/  23,
-///*"pmsm_t2c",   */  1,
-///*"probe",      */  1,
-/*"res",        */  12,
-/*"rev",        */  14,
-/*"sim",        */  16,
-/*"sserial",    */  22,
-/*"stp",        */  14,
-/*"term",       */  36,
-/*"vel",        */  36,
-/*"vel_int",    */  10 
-///*"yaskawa"     */  
-};
+int n_hal_pins = sizeof(hal_pins_list)/
+                        sizeof(hal_pins_list[0]);
 
 void test_hal_categories() {
     int i;
@@ -683,11 +598,9 @@ void test_hal_categories() {
 }
 
 void test_hal_pins() {
-    int i, j;
-    for(i = 0; i<n_hal_categories; ++i) {
-        for (j=0; j<n_hal_pins[i]; ++j) {
-            printf("%s\n", hal_pins_list[i][j]);
-        }
+    int i;
+    for(i = 0; i<n_hal_pins; ++i) {
+        printf("%s\n", hal_pins_list[i]);
     }
 }
 

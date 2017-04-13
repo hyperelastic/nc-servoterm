@@ -20,8 +20,7 @@
 /* text user interface states for main thread */
 #define TUI_EXIT     0
 #define TUI_SHELL    1
-#define TUI_CATEGORY 2
-#define TUI_PIN      3
+#define TUI_PIN      2
 
 /* connection states for connection threads */
 #define CON_ERROR       0
@@ -47,6 +46,6 @@ extern WINDOW *w_title;
 extern WINDOW *w_shell;
 extern WINDOW *w_con_receive;
 extern WINDOW *w_con_status;
-extern WINDOW *w_hal_categories;
+extern WINDOW *w_pins;
 
 #endif /* global_h */
