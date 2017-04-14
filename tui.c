@@ -39,8 +39,8 @@ char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
 
 
 void draw_shell() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM shell-write,enter,up,dwn");
-    mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM |shell| input, enter:snd");
+    mvwprintw(w_title, 2, 1, "back:d, up/left:hist, down/right:pins");
     mvwprintw(w_shell, 1, 1, ">"); /* input is active */
     mvwprintw(w_shell, 1, 3, shell_buffer);
     box(w_title, 0, 0);
@@ -50,8 +50,8 @@ void draw_shell() {
 }
 
 void draw_hist() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM history-up,down,enter");
-    mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM |history| up/down:browse");
+    mvwprintw(w_title, 2, 1, "enter/right:return 2 shell");
     box(w_title, 0, 0);
     box(w_shell, 0, 0);
     mvwprintw(w_shell, 1, 35, "%d", -hist_i-1);
@@ -62,8 +62,8 @@ void draw_hist() {
 }
 
 void draw_pin() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM pin-(pg)up,(pg)down,entr");
-    mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM |pins| (pg)up/dwn:browse");
+    mvwprintw(w_title, 2, 1, "enter:add&go 2 shell, left:go 2 shell");
     mvwprintw(w_shell, 1, 1, "."); /* pins are active */
     mvwprintw(w_shell, 1, 3, shell_buffer);
     box(w_title, 0, 0);
@@ -74,8 +74,8 @@ void draw_pin() {
 }
 
 void draw_exit() {
-    mvwprintw(w_title, 1, 1, "NC-SERVOTERM exit");
-    mvwprintw(w_title, 2, 1, "Exiting. Press any key to quit.");
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM exit: exiting");
+    mvwprintw(w_title, 2, 1, "press any key to quit.");
     box(w_title, 0, 0);
     box(w_shell, 0, 0);
     wnoutrefresh(w_shell);
@@ -96,7 +96,7 @@ void draw_screen() {
        case CON_DETACHED:   draw_con("detached");   break;
        case CON_STARTING:   draw_con("starting");   break;
        case CON_CONNECTED:  draw_con("connected");  break;
-       case CON_ERROR:                              break;
+       case CON_ERROR:      draw_con("in error");   break;
     }
     //box(w_title, 0, 0);
     //box(w_con_status, 0, 0);
@@ -232,6 +232,8 @@ void input_shell(int key) {
         case KEY_BACKSPACE: shell_back();           break;
         case KEY_DOWN:      tui_state=TUI_PIN;      break;
         case KEY_UP:        tui_state=TUI_HIST;     break;
+        case KEY_LEFT:      tui_state=TUI_HIST;     break; /* TODO edit inside string */
+        case KEY_RIGHT:     tui_state=TUI_PIN;      break; /* TODO edit inside string */
         case 10 /*enter*/:  shell_send();           break;
         default:            shell_write(key);       break;
     }
@@ -245,6 +247,7 @@ void input_hist(int key) {
         case KEY_F(8):      tui_state=TUI_EXIT;     break;
         case KEY_DOWN:      hist_down();            break;
         case KEY_UP:        hist_up();              break;
+        case KEY_RIGHT:     tui_state=TUI_SHELL;    break;
         case 10 /*enter*/:  tui_state=TUI_SHELL;    break;
         default:                                    break;
     }
@@ -258,6 +261,7 @@ void input_pin(int key) {
         case KEY_F(8):      tui_state=TUI_EXIT;         break;
         case KEY_DOWN:      pin_down();                 break;
         case KEY_UP:        pin_up();                   break;
+        case KEY_LEFT:      tui_state=TUI_SHELL;        break;
         case KEY_NPAGE:     pin_pgdown();               break;
         case KEY_PPAGE:     pin_pgup();                 break;
         case 10 /*enter*/:  pin_enter();                break;
@@ -337,6 +341,7 @@ void tui_setup() {
     w_con_receive = newwin(24, 40, 0, 40);
     refresh();
     box(w_con_receive, 0, 0);
+    mvwprintw(w_con_receive, 0, 3, "F5-stop F6-start F7-clear F8-quit");
     wrefresh(w_con_receive);
     mvwin(w_con_receive, 1,41);
     wresize(w_con_receive, 22, 38);

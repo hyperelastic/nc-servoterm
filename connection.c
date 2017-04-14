@@ -105,6 +105,10 @@ void con_write() {
         message[shell_position+1] = '\0';
         sp_nonblocking_write(port, message, sizeof(message));  
 
+        /* clear shell buffer */
+        memset(shell_buffer, 0, SHELL_BUF_SIZE);
+        shell_position = 0;
+
         shell_send_flag = 0;
     }
 }

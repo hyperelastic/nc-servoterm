@@ -27,18 +27,23 @@ int main() {
     while (tui_state != TUI_EXIT) {
         con_handle();
 
-        key = getch();              /* set to non blocking in tui/tui_setup() */
+        key = getch();      /* set to non blocking in tui/tui_setup() */
         input_handle(key);
 
-        if (i==2e2) {               /* ~50Hz when connected, 0,5 when not */
+        if (i==2e2) {       /* ~50Hz when connected, 0,5 when not */
             draw_screen();
             i = 0;
         }
 
         i++;
         switch(con_state) {
-            case CON_CONNECTED: usleep(1e2);    break; /* ~10kHz, stmbl parse */
-            default:            usleep(1e4);    break; /* ~100Hz, easy on CPU */
+            case CON_CONNECTED: /* ~10kHz, stmbl parse */
+                usleep(1e2);
+                break; 
+            default:            /* ~100Hz, easy on CPU when connecting*/
+                usleep(1e4);
+                i=2e2;
+                break;
         }
     }
 
