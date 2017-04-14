@@ -15,7 +15,6 @@ ITEM **hal_pins_items;
 MENU *hal_pins_menu;
 
 void draw_shell(); 
-void draw_cat();
 void draw_pin();
 void draw_exit();
 void draw_con(char* description);

@@ -35,59 +35,69 @@ int shell_send_flag = 0;
 
 
 void draw_shell() {
+    werase(w_shell);
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM shell-write,enter,up,dwn");
     mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
-    mvwprintw(w_shell, 1, 1, ">");
+    mvwprintw(w_shell, 1, 1, ">"); /* input is active */
     mvwprintw(w_shell, 1, 3, shell_buffer);
+    box(w_title, 0, 0);
+    box(w_shell, 0, 0);
+    wnoutrefresh(w_title);
+    wnoutrefresh(w_shell);
 }
 
 void draw_pin() {
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM pin-(pg)up,(pg)down,entr");
     mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
+    mvwprintw(w_shell, 1, 3, shell_buffer);
+    box(w_title, 0, 0);
+    wnoutrefresh(w_title);
+    wnoutrefresh(w_pins);
 }
 
 void draw_exit() {
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM exit");
     mvwprintw(w_title, 2, 1, "Exiting. Press any key to quit.");
+    box(w_title, 0, 0);
+    wnoutrefresh(w_title);
 }
 
 void draw_con(char* description) {
+    werase(w_con_status);
     mvwprintw(w_con_status, 1, 1, "STMBL is %s.", description);
+    box(w_con_status, 0, 0);
+    wnoutrefresh(w_con_status);
 }
 
 void draw_screen() {
     werase(w_title);
-    werase(w_shell);
-    switch(tui_state) {
-        case TUI_SHELL:     draw_shell();   break;
-        case TUI_PIN:       draw_pin();     break;
-        case TUI_EXIT:      draw_exit();    break;
-    }
     switch(con_state) {
        case CON_DETACHED:   draw_con("detached");   break;
        case CON_STARTING:   draw_con("starting");   break;
        case CON_CONNECTED:  draw_con("connected");  break;
        case CON_ERROR:                              break;
     }
-    box(w_title, 0, 0);
-    box(w_shell, 0, 0);
-    box(w_con_status, 0, 0);
+    //box(w_title, 0, 0);
+    //box(w_con_status, 0, 0);
     wnoutrefresh(w_con_receive); /* don't erase this win - it holds buffer */
-    wnoutrefresh(w_con_status);
-    wnoutrefresh(w_title);
-    wnoutrefresh(w_shell);
-    wnoutrefresh(w_pins);
+
+    switch(tui_state) {
+        case TUI_SHELL:     draw_shell();   break;
+        case TUI_PIN:       draw_pin();     break;
+        case TUI_EXIT:      draw_exit();    break;
+    }
+
     doupdate();
 }
 
-void shell_set_fault() {
+void shell_stop_hal() {
     memset(shell_buffer, 0, sizeof(shell_buffer));
     strncpy(shell_buffer, "net0.enable=0", sizeof(shell_buffer));
     shell_position = 13;
     shell_send_flag = 1;
 }
 
-void shell_reset_fault() {
+void shell_start_hal() {
     memset(shell_buffer, 0, sizeof(shell_buffer));
     strncpy(shell_buffer, "net0.enable=1", sizeof(shell_buffer));
     shell_position = 13;
@@ -147,18 +157,20 @@ void pin_pgup() {
 void pin_enter() {
     ITEM *cur_item; 
 
-    memset(shell_buffer, 0, sizeof(shell_buffer));
+//    memset(shell_buffer, 0, sizeof(shell_buffer));
     cur_item = current_item(hal_pins_menu);
-    strncpy(shell_buffer, item_name(cur_item), sizeof(shell_buffer));
-    shell_position = strlen(item_name(cur_item));                                                
+//    strncpy(shell_buffer, item_name(cur_item), sizeof(shell_buffer));
+    strcat(shell_buffer, item_name(cur_item));
+//    shell_position = strlen(item_name(cur_item));                                                
+    shell_position += strlen(item_name(cur_item));                                                
 
     tui_state = TUI_SHELL;
 }
 
 void input_shell(int key) {
     switch (key) {
-        case KEY_F(5):      shell_set_fault();      break;
-        case KEY_F(6):      shell_reset_fault();    break;
+        case KEY_F(5):      shell_stop_hal();       break;
+        case KEY_F(6):      shell_start_hal();      break;
         case KEY_F(7):      shell_clear();          break;
         case KEY_F(8):      tui_state=TUI_EXIT;     break;
         case KEY_BACKSPACE: shell_back();           break;
@@ -171,8 +183,8 @@ void input_shell(int key) {
 
 void input_pin(int key) {
     switch (key) {
-        case KEY_F(5):      shell_set_fault();          break;
-        case KEY_F(6):      shell_reset_fault();        break;
+        case KEY_F(5):      shell_stop_hal();           break;
+        case KEY_F(6):      shell_start_hal();          break;
         case KEY_F(7):      shell_clear();              break;
         case KEY_F(8):      tui_state=TUI_EXIT;         break;
         case KEY_DOWN:      pin_down();                 break;
