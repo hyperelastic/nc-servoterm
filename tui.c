@@ -33,9 +33,12 @@ char shell_buffer[SHELL_BUF_SIZE] = "";
 int shell_position = 0;
 int shell_send_flag = 0;
 
+/* local */
+int hist_i = 0;
+char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
+
 
 void draw_shell() {
-    werase(w_shell);
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM shell-write,enter,up,dwn");
     mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
     mvwprintw(w_shell, 1, 1, ">"); /* input is active */
@@ -46,12 +49,27 @@ void draw_shell() {
     wnoutrefresh(w_shell);
 }
 
+void draw_hist() {
+    mvwprintw(w_title, 1, 1, "NC-SERVOTERM history-up,down,enter");
+    mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
+    box(w_title, 0, 0);
+    box(w_shell, 0, 0);
+    mvwprintw(w_shell, 1, 35, "%d", -hist_i-1);
+    mvwprintw(w_shell, 1, 1, "^"); /* history is active */
+    mvwprintw(w_shell, 1, 3, shell_buffer);
+    wnoutrefresh(w_title);
+    wnoutrefresh(w_shell);
+}
+
 void draw_pin() {
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM pin-(pg)up,(pg)down,entr");
     mvwprintw(w_title, 2, 1, "F5-stop F6-start F7-clear F8-quit");
+    mvwprintw(w_shell, 1, 1, "."); /* pins are active */
     mvwprintw(w_shell, 1, 3, shell_buffer);
     box(w_title, 0, 0);
+    box(w_shell, 0, 0);
     wnoutrefresh(w_title);
+    wnoutrefresh(w_shell);
     wnoutrefresh(w_pins);
 }
 
@@ -59,6 +77,8 @@ void draw_exit() {
     mvwprintw(w_title, 1, 1, "NC-SERVOTERM exit");
     mvwprintw(w_title, 2, 1, "Exiting. Press any key to quit.");
     box(w_title, 0, 0);
+    box(w_shell, 0, 0);
+    wnoutrefresh(w_shell);
     wnoutrefresh(w_title);
 }
 
@@ -71,6 +91,7 @@ void draw_con(char* description) {
 
 void draw_screen() {
     werase(w_title);
+    werase(w_shell);
     switch(con_state) {
        case CON_DETACHED:   draw_con("detached");   break;
        case CON_STARTING:   draw_con("starting");   break;
@@ -84,6 +105,7 @@ void draw_screen() {
     switch(tui_state) {
         case TUI_SHELL:     draw_shell();   break;
         case TUI_PIN:       draw_pin();     break;
+        case TUI_HIST:      draw_hist();    break;
         case TUI_EXIT:      draw_exit();    break;
     }
 
@@ -91,21 +113,21 @@ void draw_screen() {
 }
 
 void shell_stop_hal() {
-    memset(shell_buffer, 0, sizeof(shell_buffer));
-    strncpy(shell_buffer, "net0.enable=0", sizeof(shell_buffer));
+    memset(shell_buffer, 0, SHELL_BUF_SIZE);
+    strncpy(shell_buffer, "net0.enable=0", SHELL_BUF_SIZE);
     shell_position = 13;
     shell_send_flag = 1;
 }
 
 void shell_start_hal() {
-    memset(shell_buffer, 0, sizeof(shell_buffer));
-    strncpy(shell_buffer, "net0.enable=1", sizeof(shell_buffer));
+    memset(shell_buffer, 0, SHELL_BUF_SIZE);
+    strncpy(shell_buffer, "net0.enable=1", SHELL_BUF_SIZE);
     shell_position = 13;
     shell_send_flag = 1;
 }
 
 void shell_clear() {
-    memset(shell_buffer, 0, sizeof(shell_buffer));
+    memset(shell_buffer, 0, SHELL_BUF_SIZE);
     shell_position = 0;
     werase(w_con_receive);
 }
@@ -117,23 +139,60 @@ void shell_back() {
     }
 }
 
-void shell_down() {
-    tui_state = TUI_PIN; /* TODO history, only switch state when reached end */
-}
-
 void shell_write(int input_key) {
     if (isprint(input_key)) {
         if (shell_position < SHELL_BUF_SIZE-1) {
             shell_buffer[shell_position] = input_key;
             shell_position++;
             shell_buffer[shell_position] = '\0';
-//TODO        shell_buffer[shell_position++] = '\0';
         }
     }
 }
 
 void shell_send() {
+    hist_add();
+    hist_i = 0;
     shell_send_flag = 1; /* reset from connection.c when sent */
+}
+
+void hist_init() {
+    int i;
+    for (i=0; i<SHELL_HIST_SIZE; i++) {
+        memset(hist[i], 0, SHELL_BUF_SIZE);
+        strncpy(hist[i], "", SHELL_BUF_SIZE);
+    }
+}
+
+void hist_add() { /* copy shell_buffer to first and shift others*/
+    int i;
+    for (i=SHELL_HIST_SIZE-1; i>0; i--) {
+        memset(hist[i], 0, SHELL_BUF_SIZE);
+        strncpy(hist[i], hist[i-1], SHELL_BUF_SIZE);
+    }
+    memset(hist[0], 0, SHELL_BUF_SIZE);
+    strncpy(hist[0], shell_buffer, SHELL_BUF_SIZE);
+}
+
+void hist_up() {
+    /* scroll history up unless at end */
+    if (hist_i < SHELL_HIST_SIZE) {
+        hist_i++;
+        memset(shell_buffer, 0, SHELL_BUF_SIZE);
+        strncpy(shell_buffer, hist[hist_i], SHELL_BUF_SIZE);
+        shell_position = strlen(shell_buffer);
+    }
+}
+
+void hist_down() {
+    /* scroll history down unless at beginning */
+    if (hist_i > 0) {
+        hist_i--;
+        mvwprintw(w_shell, 1, 37, "%d", -hist_i);
+        memset(shell_buffer, 0, SHELL_BUF_SIZE);
+        strncpy(shell_buffer, hist[hist_i], SHELL_BUF_SIZE);
+        shell_position = strlen(shell_buffer);
+    }
+    else tui_state = TUI_SHELL;
 }
 
 void pin_down() {
@@ -157,11 +216,8 @@ void pin_pgup() {
 void pin_enter() {
     ITEM *cur_item; 
 
-//    memset(shell_buffer, 0, sizeof(shell_buffer));
     cur_item = current_item(hal_pins_menu);
-//    strncpy(shell_buffer, item_name(cur_item), sizeof(shell_buffer));
     strcat(shell_buffer, item_name(cur_item));
-//    shell_position = strlen(item_name(cur_item));                                                
     shell_position += strlen(item_name(cur_item));                                                
 
     tui_state = TUI_SHELL;
@@ -174,10 +230,23 @@ void input_shell(int key) {
         case KEY_F(7):      shell_clear();          break;
         case KEY_F(8):      tui_state=TUI_EXIT;     break;
         case KEY_BACKSPACE: shell_back();           break;
-        case KEY_DOWN:      shell_down();           break; /* TODO history*/
-//        case KEY_UP:    tui_state=TUI_CATEGORY;     break; /* TODO history*/
+        case KEY_DOWN:      tui_state=TUI_PIN;      break;
+        case KEY_UP:        tui_state=TUI_HIST;     break;
         case 10 /*enter*/:  shell_send();           break;
         default:            shell_write(key);       break;
+    }
+}
+
+void input_hist(int key) {
+    switch (key) {
+        case KEY_F(5):      shell_stop_hal();       break;
+        case KEY_F(6):      shell_start_hal();      break;
+        case KEY_F(7):      shell_clear();          break;
+        case KEY_F(8):      tui_state=TUI_EXIT;     break;
+        case KEY_DOWN:      hist_down();            break;
+        case KEY_UP:        hist_up();              break;
+        case 10 /*enter*/:  tui_state=TUI_SHELL;    break;
+        default:                                    break;
     }
 }
 
@@ -199,6 +268,7 @@ void input_pin(int key) {
 void input_handle(int key) {
     switch(tui_state) {
         case TUI_SHELL:     input_shell(key);       break;
+        case TUI_HIST:      input_hist(key);        break;
         case TUI_PIN:       input_pin(key);         break;
         case TUI_EXIT:                              break;
     }
@@ -273,6 +343,8 @@ void tui_setup() {
     scrollok(w_con_receive, TRUE);
     wclear(w_con_receive);
     wrefresh(w_con_receive);
+
+    hist_init(); /* TODO move somewhere else perhaps */
 }
 
 void tui_cleanup() {

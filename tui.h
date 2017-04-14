@@ -9,6 +9,7 @@
 #define tui_h
 
 #include <menu.h>
+#include "global.h"
 
 
 ITEM **hal_pins_items;
@@ -27,6 +28,11 @@ void shell_back();
 void shell_write(int input_key);
 void shell_send();
 
+void hist_init();
+void hist_add();
+void hist_up();
+void hist_down();
+
 void pin_down();
 void pin_up();
 void pin_pgdown();
@@ -44,6 +50,9 @@ WINDOW *construct_menu_win(MENU *menu, int nlines, int ncols, int begin_y,
 
 void tui_setup();
 void tui_cleanup();
+
+int hist_i;
+char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
 
 
 #endif /* tui_h */

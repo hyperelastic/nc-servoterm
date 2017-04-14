@@ -18,9 +18,10 @@
 #include <ncurses.h>
 
 /* text user interface states for main thread */
-#define TUI_EXIT     0
-#define TUI_SHELL    1
-#define TUI_PIN      2
+#define TUI_EXIT    0
+#define TUI_SHELL   1
+#define TUI_HIST    2 /* shell history. TODO receive history*/
+#define TUI_PIN     3
 
 /* connection states for connection threads */
 #define CON_ERROR       0
@@ -30,6 +31,7 @@
 
 /* size of message[] */
 #define SHELL_BUF_SIZE  37
+#define SHELL_HIST_SIZE  100
 
 
 /* program states */
