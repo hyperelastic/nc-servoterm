@@ -1,7 +1,3 @@
 *.o
-<<<<<<< HEAD
-*main
-=======
-main
->>>>>>> master
+nc-servoterm
 tags
