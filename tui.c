@@ -210,11 +210,18 @@ void pin_pgup() {
 
 void pin_enter() {
     ITEM *cur_item; 
+    int name_length;
+    int space_left;
 
     cur_item = current_item(hal_pins_menu);
-    strcat(shell_buffer, item_name(cur_item));
-    shell_position += strlen(item_name(cur_item));                                                
-
+    name_length = strlen(item_name(cur_item));
+    if (name_length < SHELL_BUF_SIZE) {
+        space_left = SHELL_BUF_SIZE - shell_position;
+        if (space_left >= name_length) {
+            strcat(shell_buffer, item_name(cur_item));
+            shell_position += name_length;
+        }
+    }
     tui_state = TUI_SHELL;
 }
 
@@ -309,6 +316,8 @@ void tui_setup() {
     cbreak();
     noecho();
 
+    hist_init();
+
     /* name of program + help */
     w_title = newwin(4, 39, 0, 0);
     refresh();
@@ -322,7 +331,7 @@ void tui_setup() {
     wrefresh(w_con_status);
 
     /* shell for user input */
-    w_shell = newwin(3, 39, 7, 0);
+    w_shell = newwin(3, 39, 7, 0); /* TODO try to use pads for scrolling */
     refresh();
     box(w_shell, 0, 0);
     wrefresh(w_shell);
@@ -344,7 +353,6 @@ void tui_setup() {
     wclear(w_con_receive);
     wrefresh(w_con_receive);
 
-    hist_init(); /* TODO move somewhere else perhaps */
 }
 
 void tui_cleanup() {

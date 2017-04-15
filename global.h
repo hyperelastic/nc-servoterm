@@ -30,8 +30,8 @@
 #define CON_CONNECTED   3
 
 /* size of message[] */
-#define SHELL_BUF_SIZE  37
-#define SHELL_HIST_SIZE  100
+#define SHELL_BUF_SIZE  40 
+#define SHELL_HIST_SIZE 100
 
 
 /* program states */
