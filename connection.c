@@ -31,9 +31,10 @@ int wave_count = -1;
 
 void con_port_ping(void) {
     char *descr;
-    char *contains;
     enum sp_return error;
     int i;
+
+    char *contains = NULL;
 
     if (ports) {
         sp_free_port_list(ports);

@@ -40,8 +40,8 @@ int main() {
             case CON_CONNECTED: /* ~10kHz, stmbl parse */
                 usleep(1e2);
                 break; 
-            default:            /* ~100Hz, easy on CPU when connecting*/
-                usleep(1e4);
+            default:            /* easy on CPU when connecting*/
+                usleep(2e2);
                 i=2e2;
                 break;
         }
