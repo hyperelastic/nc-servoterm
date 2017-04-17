@@ -40,7 +40,7 @@ char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
 
 void draw_shell() {
     mvwprintw(w_title, 0, 12, "NC-SERVOTERM");
-    mvwprintw(w_title, 1, 1, "SHELL: letters-input, enter-snd");
+    mvwprintw(w_title, 1, 1, "SHELL: letters-input, enter-send");
     mvwprintw(w_title, 2, 1, "back-d, up/left-hist, down/right-pins");
     mvwprintw(w_shell, 1, 1, ">"); /* input is active */
     mvwprintw(w_shell, 1, 3, shell_buffer);
@@ -107,27 +107,34 @@ void draw_screen() {
     doupdate();
 }
 
-void shell_stop_hal() {
+void stop_hal() {
     memset(shell_buffer, 0, SHELL_BUF_SIZE);
     strncpy(shell_buffer, "net0.enable=0", SHELL_BUF_SIZE);
     shell_position = 13;
-    shell_send_flag = 1;
+    shell_send();
 }
 
-void shell_start_hal() {
+void start_hal() {
     memset(shell_buffer, 0, SHELL_BUF_SIZE);
     strncpy(shell_buffer, "net0.enable=1", SHELL_BUF_SIZE);
     shell_position = 13;
-    shell_send_flag = 1;
+    shell_send();
 }
 
-void shell_clear() {
+void clear_bufs() {
     memset(shell_buffer, 0, SHELL_BUF_SIZE);
     shell_position = 0;
     werase(w_con_receive);
 }
 
-void shell_back() {
+void shell_delete() {
+    if (shell_position > 0) {
+        shell_position--;
+        shell_buffer[shell_position] = '\0';
+    }
+}
+
+void shell_left() {
     if (shell_position > 0) {
         shell_position--;
         shell_buffer[shell_position] = '\0';
@@ -148,6 +155,30 @@ void shell_send() {
     hist_add();
     hist_i = 0;
     shell_send_flag = 1; /* reset from connection.c when sent */
+}
+
+void shell_2_hist() {
+    memset(shell_buffer, 0, SHELL_BUF_SIZE);
+    strncpy(shell_buffer, hist[hist_i], SHELL_BUF_SIZE);
+    shell_position = strlen(shell_buffer);
+    tui_state = TUI_HIST;
+}
+
+void input_shell(int key) {
+    switch (key) {
+        case KEY_F(5):      stop_hal();             break;
+        case KEY_F(6):      start_hal();            break;
+        case KEY_F(7):      clear_bufs();           break;
+        case KEY_F(8):      tui_state = TUI_EXIT;   break;
+        case 127/*bspace*/: shell_delete();         break;
+        case KEY_BACKSPACE: shell_delete();         break;
+        case KEY_DOWN:      tui_state = TUI_PIN;    break;
+        case KEY_UP:        shell_2_hist();         break;
+        case KEY_LEFT:      shell_2_hist();         break; /* TODO edit inside string */
+        case KEY_RIGHT:     tui_state = TUI_PIN;    break; /* TODO edit inside string */
+        case 10 /*enter*/:  shell_send();           break;
+        default:            shell_write(key);       break;
+    }
 }
 
 void hist_init() {
@@ -190,6 +221,20 @@ void hist_down() {
     else tui_state = TUI_SHELL;
 }
 
+void input_hist(int key) {
+    switch (key) {
+        case KEY_F(5):      stop_hal();             break;
+        case KEY_F(6):      start_hal();            break;
+        case KEY_F(7):      clear_bufs();           break;
+        case KEY_F(8):      tui_state = TUI_EXIT;   break;
+        case KEY_DOWN:      hist_down();            break;
+        case KEY_UP:        hist_up();              break;
+        case KEY_RIGHT:     tui_state = TUI_SHELL;  break;
+        case 10 /*enter*/:  tui_state = TUI_SHELL;  break;
+        default:                                    break;
+    }
+}
+
 void pin_down() {
     menu_driver(hal_pins_menu, REQ_DOWN_ITEM);
 }
@@ -225,41 +270,11 @@ void pin_enter() {
     tui_state = TUI_SHELL;
 }
 
-void input_shell(int key) {
-    switch (key) {
-        case KEY_F(5):      shell_stop_hal();       break;
-        case KEY_F(6):      shell_start_hal();      break;
-        case KEY_F(7):      shell_clear();          break;
-        case KEY_F(8):      tui_state=TUI_EXIT;     break;
-        case 127/*bspace*/: shell_back();           break;
-        case KEY_DOWN:      tui_state=TUI_PIN;      break;
-        case KEY_UP:        tui_state=TUI_HIST;     break;
-        case KEY_LEFT:      tui_state=TUI_HIST;     break; /* TODO edit inside string */
-        case KEY_RIGHT:     tui_state=TUI_PIN;      break; /* TODO edit inside string */
-        case 10 /*enter*/:  shell_send();           break;
-        default:            shell_write(key);       break;
-    }
-}
-
-void input_hist(int key) {
-    switch (key) {
-        case KEY_F(5):      shell_stop_hal();       break;
-        case KEY_F(6):      shell_start_hal();      break;
-        case KEY_F(7):      shell_clear();          break;
-        case KEY_F(8):      tui_state=TUI_EXIT;     break;
-        case KEY_DOWN:      hist_down();            break;
-        case KEY_UP:        hist_up();              break;
-        case KEY_RIGHT:     tui_state=TUI_SHELL;    break;
-        case 10 /*enter*/:  tui_state=TUI_SHELL;    break;
-        default:                                    break;
-    }
-}
-
 void input_pin(int key) {
     switch (key) {
-        case KEY_F(5):      shell_stop_hal();           break;
-        case KEY_F(6):      shell_start_hal();          break;
-        case KEY_F(7):      shell_clear();              break;
+        case KEY_F(5):      stop_hal();                 break;
+        case KEY_F(6):      start_hal();                break;
+        case KEY_F(7):      clear_bufs();               break;
         case KEY_F(8):      tui_state=TUI_EXIT;         break;
         case KEY_DOWN:      pin_down();                 break;
         case KEY_UP:        pin_up();                   break;

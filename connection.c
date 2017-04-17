@@ -26,6 +26,7 @@ WINDOW *w_con_receive;
 struct sp_port *port;
 struct sp_port **ports;
 char rx = 0;
+int wave_count = -1;
 
 
 void con_port_ping(void) {
@@ -82,14 +83,21 @@ void con_recieve() {
     enum sp_return error;
 
     sp_nonblocking_read(port, &rx, sizeof(rx));
-    if (isprint(rx)) {  
-        waddch(w_con_receive, rx);
-    }
-    else if (rx==10) { //\n
-        waddch(w_con_receive, rx);
-    }
-    rx = 0;
 
+    if (rx==-1) wave_count = 0;             /* rx==(char)0xFF, wave announced */
+
+    if (wave_count<0) {
+        if (isprint(rx)) {  
+            waddch(w_con_receive, rx);
+        }
+        else if (rx==10) { //\n
+            waddch(w_con_receive, rx);
+        }
+    }
+    else if (wave_count<8) wave_count++;    /* stmbl sending wave TODO handle */
+    else wave_count = -1;                   /* stmbl stopped sending wave */
+
+    rx = 0;
     error = sp_input_waiting(port);
     if (error < 0) {
         con_state = CON_ERROR;
