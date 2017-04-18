@@ -225,7 +225,7 @@ void input_hist(int key) {
     switch (key) {
         case KEY_DOWN:      hist_down();            break;
         case KEY_UP:        hist_up();              break;
-        case KEY_RIGHT:     tui_state = TUI_SHELL;  break;
+        case KEY_RIGHT:     hist_down();            break;
         case 10 /*enter*/:  tui_state = TUI_SHELL;  break;
         default:                                    break;
     }
