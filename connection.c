@@ -20,7 +20,7 @@ int con_state;
 int shell_send_flag;    /* set to 1 from tui.c */
 
 /* global ncurses-specific */
-WINDOW *w_con_receive;
+WINDOW *w_receive;
 
 /* local */
 struct sp_port *port;
@@ -89,10 +89,10 @@ void con_recieve() {
 
     if (wave_count<0) {
         if (isprint(rx)) {  
-            waddch(w_con_receive, rx);
+            waddch(w_receive, rx);
         }
         else if (rx==10) { //\n
-            waddch(w_con_receive, rx);
+            waddch(w_receive, rx);
         }
     }
     else if (wave_count<8) wave_count++;    /* stmbl sending wave TODO handle */
