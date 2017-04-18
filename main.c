@@ -56,7 +56,7 @@ int main() {
                 usleep(1e2);
                 break; 
             default:            /* easy on CPU when connecting*/
-                usleep(2e2);
+                usleep(2e4);
                 i=2e2;
                 break;
         }
