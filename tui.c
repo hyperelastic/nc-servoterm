@@ -36,6 +36,7 @@ int shell_send_flag = 0;
 /* local */
 int hist_i = 0;
 char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
+int term_height, term_width;
 
 
 void draw_shell() {
@@ -328,20 +329,23 @@ void tui_setup() {
     cbreak();
     noecho();
 
+    getmaxyx(stdscr, term_height, term_width);
+
     /* name of program + help */
-    w_title = newwin(4, 39, 0, 0);
+    w_title = newwin(W_TITLE_H, W_TITLE_W, 0, 0);
     refresh();
     box(w_title, 0, 0);
     wrefresh(w_title);
 
     /* stmbl connection status window */
-    w_con_status = newwin(3, 39, 4, 0);
+    w_con_status = newwin(W_CON_STATUS_H, W_TITLE_W, W_TITLE_H, 0);
     refresh();
     box(w_con_status, 0, 0);
     wrefresh(w_con_status);
 
     /* shell for user input */
-    w_shell = newwin(3, 39, 7, 0); /* TODO try to use pads for scrolling */
+    /* TODO try to use pads for scrolling */
+    w_shell = newwin(W_SHELL_H, W_TITLE_W, W_TITLE_H+W_CON_STATUS_H, 0);
     refresh();
     box(w_shell, 0, 0);
     wrefresh(w_shell);
@@ -349,16 +353,20 @@ void tui_setup() {
     /* hal categories menu */
     hal_pins_items = construct_menu_items(hal_pins_list, n_hal_pins);
     hal_pins_menu = new_menu((ITEM **)hal_pins_items);
-    w_pins = construct_menu_win(hal_pins_menu, 14, 39, 10, 0);
+    //w_pins = construct_menu_win(hal_pins_menu, 14, 39, 10, 0);
+    w_pins = construct_menu_win(hal_pins_menu,
+            term_height-W_TITLE_H-W_CON_STATUS_H-W_SHELL_H, W_TITLE_W,
+            W_TITLE_H+W_CON_STATUS_H+W_SHELL_H, 0);
 
     /* stmbl connection output window, also accesed in connection.c */
-    w_con_receive = newwin(24, 40, 0, 40);
+//    w_con_receive = newwin(24, 40, 0, 40);
+    w_con_receive = newwin(term_height, W_CON_RECEIVE_W, 0, W_TITLE_W+1);
     refresh();
     box(w_con_receive, 0, 0);
     mvwprintw(w_con_receive, 0, 3, "F5-stop F6-start F7-clear F8-quit");
     wrefresh(w_con_receive);
-    wresize(w_con_receive, 22, 38);
-    mvwin(w_con_receive, 1,41);
+    wresize(w_con_receive, term_height-2, W_CON_RECEIVE_W-2);
+    mvwin(w_con_receive, 1,W_TITLE_W+2);
     scrollok(w_con_receive, TRUE);
     wclear(w_con_receive);
     wrefresh(w_con_receive);

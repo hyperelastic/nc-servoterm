@@ -34,6 +34,12 @@
 #define SHELL_BUF_SIZE  40 
 #define SHELL_HIST_SIZE 100
 
+#define W_TITLE_W           39
+#define W_CON_RECEIVE_W     40
+#define W_TITLE_H           4
+#define W_CON_STATUS_H      3
+#define W_SHELL_H           3
+
 
 /* program states */
 extern int tui_state;           /* state of the text user interface */
