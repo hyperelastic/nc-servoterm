@@ -22,6 +22,7 @@
 #define TUI_SHELL   1
 #define TUI_HIST    2 /* shell history. TODO receive history*/
 #define TUI_PIN     3
+#define TUI_RESIZE  4
 
 /* connection states for connection threads */
 #define CON_ERROR       0

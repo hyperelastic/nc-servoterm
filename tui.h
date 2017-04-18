@@ -18,6 +18,7 @@ MENU *hal_pins_menu;
 void draw_shell(); 
 void draw_pin();
 void draw_exit();
+void draw_resize();
 void draw_con(char* description);
 void draw_screen();
 
@@ -33,7 +34,6 @@ void shell_down();
 
 void input_shell(int key);
 
-void hist_init();
 void hist_add();
 void hist_up();
 void hist_down();

@@ -77,6 +77,12 @@ void draw_exit() {
     wnoutrefresh(w_title);
 }
 
+void draw_resize() {
+    tui_cleanup();
+    tui_setup();
+    tui_state = TUI_SHELL;
+}
+
 void draw_con(char* description) {
     werase(w_con_status);
     mvwprintw(w_con_status, 1, 1, "STMBL is %s.", description);
@@ -102,6 +108,7 @@ void draw_screen() {
         case TUI_PIN:       draw_pin();     break;
         case TUI_HIST:      draw_hist();    break;
         case TUI_EXIT:      draw_exit();    break;
+        case TUI_RESIZE:    draw_resize();  break;
     }
 
     doupdate();
@@ -174,14 +181,6 @@ void input_shell(int key) {
         case KEY_RIGHT:     tui_state = TUI_PIN;    break; /* TODO edit inside string */
         case 10 /*enter*/:  shell_send();           break;
         default:            shell_write(key);       break;
-    }
-}
-
-void hist_init() {
-    int i;
-    for (i=0; i<SHELL_HIST_SIZE; i++) {
-        memset(hist[i], 0, SHELL_BUF_SIZE);
-        strncpy(hist[i], "", SHELL_BUF_SIZE);
     }
 }
 
@@ -280,10 +279,10 @@ void input_pin(int key) {
 
 void input_handle(int key) {
     switch(key) {
-        case KEY_F(5):      stop_hal();                 break;
-        case KEY_F(6):      start_hal();                break;
-        case KEY_F(7):      clear_bufs();               break;
-        case KEY_F(8):      tui_state=TUI_EXIT;         break;
+        case KEY_F(5):      stop_hal();             break;
+        case KEY_F(6):      start_hal();            break;
+        case KEY_F(7):      clear_bufs();           break;
+        case KEY_F(8):      tui_state=TUI_EXIT;     break;
     }
     switch(tui_state) {
         case TUI_SHELL:     input_shell(key);       break;
@@ -328,8 +327,6 @@ void tui_setup() {
     nodelay(stdscr, 1); /* important, for nonblocking getch() */
     cbreak();
     noecho();
-
-    hist_init();
 
     /* name of program + help */
     w_title = newwin(4, 39, 0, 0);

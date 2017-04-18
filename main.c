@@ -7,11 +7,24 @@
 //#include <pthread.h>
 //#include <libserialport.h>
 //#include <ctype.h>
+#include <signal.h>
 
 
 #include "global.h"
 #include "connection.h"
 #include "tui.h"
+
+void set_resize() { /* handle terminal resize */
+    tui_state = TUI_RESIZE;
+}
+
+void hist_init() {
+    int i;
+    for (i=0; i<SHELL_HIST_SIZE; i++) {
+        memset(hist[i], 0, SHELL_BUF_SIZE);
+        strncpy(hist[i], "", SHELL_BUF_SIZE);
+    }
+}
 
 
 int main() {
@@ -21,6 +34,7 @@ int main() {
 
     tui_setup();
     draw_screen();
+    hist_init();
 
     int key = 0;
     int i = 0;
@@ -28,6 +42,7 @@ int main() {
         con_handle();
 
         key = getch();      /* set to non blocking in tui/tui_setup() */
+        signal(SIGWINCH, set_resize);
         input_handle(key);
 
         if (i==2e2) {       /* ~50Hz when connected, 0,5 when not */
