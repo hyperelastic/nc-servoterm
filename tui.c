@@ -166,10 +166,6 @@ void shell_2_hist() {
 
 void input_shell(int key) {
     switch (key) {
-        case KEY_F(5):      stop_hal();             break;
-        case KEY_F(6):      start_hal();            break;
-        case KEY_F(7):      clear_bufs();           break;
-        case KEY_F(8):      tui_state = TUI_EXIT;   break;
         case 127/*bspace*/: shell_delete();         break;
         case KEY_BACKSPACE: shell_delete();         break;
         case KEY_DOWN:      tui_state = TUI_PIN;    break;
@@ -218,15 +214,15 @@ void hist_down() {
         strncpy(shell_buffer, hist[hist_i], SHELL_BUF_SIZE);
         shell_position = strlen(shell_buffer);
     }
-    else tui_state = TUI_SHELL;
+    else {
+        tui_state = TUI_SHELL;
+        memset(shell_buffer, 0, SHELL_BUF_SIZE);
+        shell_position = 0;
+    }
 }
 
 void input_hist(int key) {
     switch (key) {
-        case KEY_F(5):      stop_hal();             break;
-        case KEY_F(6):      start_hal();            break;
-        case KEY_F(7):      clear_bufs();           break;
-        case KEY_F(8):      tui_state = TUI_EXIT;   break;
         case KEY_DOWN:      hist_down();            break;
         case KEY_UP:        hist_up();              break;
         case KEY_RIGHT:     tui_state = TUI_SHELL;  break;
@@ -272,10 +268,6 @@ void pin_enter() {
 
 void input_pin(int key) {
     switch (key) {
-        case KEY_F(5):      stop_hal();                 break;
-        case KEY_F(6):      start_hal();                break;
-        case KEY_F(7):      clear_bufs();               break;
-        case KEY_F(8):      tui_state=TUI_EXIT;         break;
         case KEY_DOWN:      pin_down();                 break;
         case KEY_UP:        pin_up();                   break;
         case KEY_LEFT:      tui_state=TUI_SHELL;        break;
@@ -287,6 +279,12 @@ void input_pin(int key) {
 }
 
 void input_handle(int key) {
+    switch(key) {
+        case KEY_F(5):      stop_hal();                 break;
+        case KEY_F(6):      start_hal();                break;
+        case KEY_F(7):      clear_bufs();               break;
+        case KEY_F(8):      tui_state=TUI_EXIT;         break;
+    }
     switch(tui_state) {
         case TUI_SHELL:     input_shell(key);       break;
         case TUI_HIST:      input_hist(key);        break;
