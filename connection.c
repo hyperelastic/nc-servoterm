@@ -25,8 +25,8 @@ WINDOW *w_receive;
 /* local */
 struct sp_port *port;
 struct sp_port **ports;
-char rx = 0;
 int wave_count = -1;
+int8_t rx = 0;
 
 
 void con_port_ping(void) {
@@ -85,7 +85,14 @@ void con_recieve() {
 
     sp_nonblocking_read(port, &rx, sizeof(rx));
 
-    if (rx==-1) wave_count = 0;             /* rx==(char)0xFF, wave announced */
+    /*
+     * current stmbl wave protocol:
+     * "some random text" + 0xFF + int8_t wave[0] + int8_t wave[1] + ... +
+     * int8_t wave[7] + "other text"
+     */
+
+    /* rx==(char)0xFF has announced wave */
+    if (rx==-1) wave_count = 0;
 
     if (wave_count<0) {
         if (isprint(rx)) {  
@@ -94,9 +101,18 @@ void con_recieve() {
         else if (rx==10) { //\n
             waddch(w_receive, rx);
         }
+    } 
+    else if (wave_count<9) {
+        /* handle wave */
+        if (wave_count == 2) {
+            mvwprintw(w_receive, 0, 0, "%d", rx);
+        }
+        wave_count++;
     }
-    else if (wave_count<8) wave_count++;    /* stmbl sending wave TODO handle */
-    else wave_count = -1;                   /* stmbl stopped sending wave */
+    else {
+        /* wave over */
+        wave_count = -1;
+    }
 
     rx = 0;
     error = sp_input_waiting(port);
