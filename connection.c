@@ -1,5 +1,20 @@
 /*
  * file: connection.c
+ *
+ * Parses stmbl output, sends messages to stmbl..
+ *
+ * What are waves?
+ *
+ * Stmbl sends printable messages. In addition it sends eight uint8_t messages,
+ * which are announced by a 0xFF message. Those eight numbers are called waves,
+ * since they are used in the original servoterm to create plots. They are the
+ * values of term0.wave[0-7] hal pins. By default wave[1] is associated with
+ * the encoder position.
+ *
+ * The wave protocol is this:
+ * "some text" + 0xFF + uint8_t wave[0] + uint8_t wave[1] + ... +
+ * uint8_t wave[7] + "other text"
+ *
  */
 
 
@@ -18,6 +33,7 @@ int con_state;
 
 /* global connection + tui shared variables */
 int shell_send_flag;    /* set to 1 from tui.c */
+float wave[8];          /* term0.wave[0-7], range -0.5 to 0.5 */
 
 /* global ncurses-specific */
 WINDOW *w_receive;
@@ -25,8 +41,8 @@ WINDOW *w_receive;
 /* local */
 struct sp_port *port;
 struct sp_port **ports;
-int wave_count = -1;
-int8_t rx = 0;
+int wave_count = -1;    /* -1 no wave, 0-7 wave  */
+uint8_t rx = 0;         /* usb communication buffer */
 
 
 void con_port_ping(void) {
@@ -85,32 +101,25 @@ void con_recieve() {
 
     sp_nonblocking_read(port, &rx, sizeof(rx));
 
-    /*
-     * current stmbl wave protocol:
-     * "some random text" + 0xFF + int8_t wave[0] + int8_t wave[1] + ... +
-     * int8_t wave[7] + "other text"
-     */
-
-    /* rx==(char)0xFF has announced wave */
-    if (rx==-1) wave_count = 0;
-
-    if (wave_count<0) {
+    if (wave_count==-1) {       /* no wave, normal */
         if (isprint(rx)) {  
             waddch(w_receive, rx);
         }
-        else if (rx==10) { //\n
+        else if (rx==10) {          /* new line */
             waddch(w_receive, rx);
         }
+        else if (rx==0xFF) {        /* wave announced */
+            wave_count = 0;
+        }
     } 
-    else if (wave_count<9) {
-        /* handle wave */
-        if (wave_count == 2) {
-            mvwprintw(w_receive, 0, 0, "%d", rx);
+    else if (wave_count<8) {    /* process wave */
+        if (wave_count == 1) {
+            werase(w_receive);
+            mvwprintw(w_receive, 0, 0, "%f", (rx-128)/128.);
         }
         wave_count++;
     }
-    else {
-        /* wave over */
+    else {                      /* wave over, back to normal */
         wave_count = -1;
     }
 

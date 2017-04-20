@@ -50,6 +50,7 @@ extern int con_state;           /* state of the serial connection */
 extern char shell_buffer[];
 extern int shell_position;
 extern int shell_send_flag;     /* set,reset by both tui.c and connection.c */
+float wave[8];                  /* term0.wave[0-7], range -0.5 to 0.5 */
 
 /* ncurses windows */
 extern WINDOW *w_title;             
