@@ -26,7 +26,6 @@ void hist_init() {
     }
 }
 
-
 int main() {
 
     tui_state = TUI_SHELL;

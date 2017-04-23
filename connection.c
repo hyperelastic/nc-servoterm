@@ -114,8 +114,7 @@ void con_recieve() {
     } 
     else if (wave_count<8) {    /* process wave */
         if (wave_count == 1) {
-            werase(w_receive);
-            mvwprintw(w_receive, 0, 0, "%f", (rx-128)/128.);
+            wave[wave_count] = (rx-128)/128.;
         }
         wave_count++;
     }

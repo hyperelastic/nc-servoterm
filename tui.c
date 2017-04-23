@@ -67,15 +67,26 @@ WINDOW *construct_menu_win(MENU *menu, int nlines, int ncols, int begin_y, int b
 }
 
 void tui_setup() {
+    int w_pins_h;
+    int w_receive_h;
+
     initscr();
     keypad(stdscr, 1);
     nodelay(stdscr, 1); /* important, for nonblocking getch() */
     cbreak();
     noecho();
 
-    getmaxyx(stdscr, term_height, term_width);
+    getmaxyx(stdscr, term_h, term_w);
 
-    /* name of program + help */
+    w_pins_h = term_h - W_TITLE_H - W_CON_STATUS_H - W_SHELL_H;
+    w_receive_h = term_h;
+    if (term_h >= 24+W_WAVE_H) { /* enough space for wave window */
+        w_pins_h -= W_WAVE_H;
+        w_receive_h -= W_WAVE_H;
+    }
+
+
+    /* name of program  +  help */
     w_title = newwin(W_TITLE_H, W_TITLE_W, 0, 0);
     refresh();
     box(w_title, 0, 0);
@@ -88,7 +99,7 @@ void tui_setup() {
     wrefresh(w_status);
 
     /* shell for user input */
-    w_shell = newwin(W_SHELL_H, W_TITLE_W, W_TITLE_H+W_CON_STATUS_H, 0);
+    w_shell = newwin(W_SHELL_H, W_TITLE_W, W_TITLE_H + W_CON_STATUS_H, 0);
     refresh();
     box(w_shell, 0, 0);
     wrefresh(w_shell);
@@ -96,26 +107,31 @@ void tui_setup() {
     /* hal categories menu */
     hal_pins_items = construct_menu_items(hal_pins_list, n_hal_pins);
     hal_pins_menu = new_menu((ITEM **)hal_pins_items);
-    w_pins = construct_menu_win(hal_pins_menu,
-            term_height-W_TITLE_H-W_CON_STATUS_H-W_SHELL_H, W_TITLE_W,
-            W_TITLE_H+W_CON_STATUS_H+W_SHELL_H, 0);
+    w_pins = construct_menu_win(hal_pins_menu, w_pins_h, W_TITLE_W,
+            W_TITLE_H + W_CON_STATUS_H + W_SHELL_H, 0);
 
     /* stmbl connection output window, also accesed in connection.c */
-    w_receive = newwin(term_height, W_CON_RECEIVE_W, 0, W_TITLE_W+1);
+    w_receive = newwin(w_receive_h, W_RECEIVE_W, 0, W_TITLE_W + 1);
     refresh();
     box(w_receive, 0, 0);
-    mvwprintw(w_receive, 0, 3, "F5-stop F6-start F7-clear F8-quit");
+    mvwprintw(w_receive, 0, 2, " F5-stop F6-start F7-clear F8-quit ");
     wrefresh(w_receive);
-    wresize(w_receive, term_height-2, W_CON_RECEIVE_W-2);
-    mvwin(w_receive, 1,W_TITLE_W+2);
+    wresize(w_receive, w_receive_h - 2, W_RECEIVE_W - 2);
+    mvwin(w_receive, 1, W_TITLE_W + 2);
     scrollok(w_receive, TRUE);
     wclear(w_receive);
     wrefresh(w_receive);
+
+//    if (term_h < 24 || term_w < 80) {
+//        mvwprintw(w_receive, 1, 1, "Terminal not big enough");
+//        wrefresh(w_receive);
+//        tui_state = TUI_EXIT;
+//    }
 }
 
 
 void draw_shell() {
-    mvwprintw(w_title, 0, 12, "NC-SERVOTERM");
+    mvwprintw(w_title, 0, 11, " NC-SERVOTERM ");
     mvwprintw(w_title, 1, 1, "SHELL: letters-input, enter-send");
     mvwprintw(w_title, 2, 1, "back-d, up/left-hist, down/right-pins");
     mvwprintw(w_shell, 1, 1, ">"); /* input is active */
@@ -397,6 +413,15 @@ void tui_cleanup() {
     refresh();
     endwin();
 }
+
+
+
+
+
+
+
+
+
 
 
 

@@ -36,10 +36,11 @@
 
 /* fixed window dimensions */
 #define W_TITLE_W           39
-#define W_CON_RECEIVE_W     40
+#define W_RECEIVE_W         40
 #define W_TITLE_H           4
 #define W_CON_STATUS_H      3
 #define W_SHELL_H           3
+#define W_WAVE_H            10
 
 
 /* program states */

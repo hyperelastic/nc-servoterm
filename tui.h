@@ -17,9 +17,9 @@
 
 ITEM **hal_pins_items;
 MENU *hal_pins_menu;
-int hist_i;
+int hist_i;                                     /* current browsing position */
 char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
-int term_height, term_width;
+int term_h, term_w;                             /* height and width */
 
 ITEM **construct_menu_items(char *items_list[], int n_items);
 WINDOW *construct_menu_win(MENU *menu, int nlines, int ncols, int begin_y,
