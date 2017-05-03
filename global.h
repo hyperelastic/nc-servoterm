@@ -28,7 +28,8 @@
 #define CON_ERROR       0
 #define CON_DETACHED    1
 #define CON_STARTING    2
-#define CON_CONNECTED   3
+#define CON_RECEIVE     3
+#define CON_SEND        4
 
 /* buffer sizes */
 #define SHELL_BUF_SIZE  40 

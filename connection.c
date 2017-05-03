@@ -89,7 +89,7 @@ void con_init() {
         sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
         sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
     
-        con_state = CON_CONNECTED;
+        con_state = CON_RECEIVE;
     }
     else {
         con_state = CON_ERROR;
@@ -113,9 +113,7 @@ void con_recieve() {
         }
     } 
     else if (wave_count<8) {    /* process wave */
-        if (wave_count == 1) {
-            wave[wave_count] = (rx-128)/128.;
-        }
+        wave[wave_count] = (rx-128)/128.;
         wave_count++;
     }
     else {                      /* wave over, back to normal */
@@ -127,22 +125,30 @@ void con_recieve() {
     if (error < 0) {
         con_state = CON_ERROR;
     }
+
+    if (shell_send_flag == 1) {
+        con_state = CON_SEND;
+        shell_send_flag = 0;
+    }
     
 }
 
 void con_write() {
-    if (shell_send_flag == 1) {
-        char message[shell_position+1];
-        strncpy(message, shell_buffer, shell_position+1);
-        message[shell_position] = '\n';
-        message[shell_position+1] = '\0';
-        sp_nonblocking_write(port, message, sizeof(message));  
+    enum sp_return error;
 
-        /* clear shell buffer */
-        memset(shell_buffer, 0, SHELL_BUF_SIZE);
-        shell_position = 0;
+    char message[shell_position+1];
+    strncpy(message, shell_buffer, shell_position+1);
+    message[shell_position] = '\n';
+    message[shell_position+1] = '\0';
+    sp_nonblocking_write(port, message, sizeof(message));  
 
-        shell_send_flag = 0;
+    /* clear shell buffer */
+    memset(shell_buffer, 0, SHELL_BUF_SIZE);
+    shell_position = 0;
+
+    error = sp_output_waiting(port);
+    if (!(error < 0)) {
+        con_state = CON_RECEIVE;
     }
 }
 
@@ -154,8 +160,10 @@ void con_handle() {
             case CON_STARTING:
                 con_init();
                 break;
-            case CON_CONNECTED:
+            case CON_RECEIVE:
                 con_recieve();
+                break;
+            case CON_SEND:
                 con_write();
                 break;
             case CON_ERROR:

@@ -72,7 +72,7 @@ void tui_setup() {
 
     initscr();
     keypad(stdscr, 1);
-    nodelay(stdscr, 1); /* important, for nonblocking getch() */
+    nodelay(stdscr, 1);             /* important, for nonblocking getch() */
     cbreak();
     noecho();
 
@@ -80,11 +80,12 @@ void tui_setup() {
 
     w_pins_h = term_h - W_TITLE_H - W_CON_STATUS_H - W_SHELL_H;
     w_receive_h = term_h;
-    if (term_h >= 24+W_WAVE_H) { /* enough space for wave window */
+
+    /* enough space for wave window */
+    if (term_h >= 24+W_WAVE_H) {
         w_pins_h -= W_WAVE_H;
         w_receive_h -= W_WAVE_H;
     }
-
 
     /* name of program  +  help */
     w_title = newwin(W_TITLE_H, W_TITLE_W, 0, 0);
@@ -186,7 +187,8 @@ void draw_screen() {
     switch(con_state) {
        case CON_DETACHED:   draw_con("detached");   break;
        case CON_STARTING:   draw_con("starting");   break;
-       case CON_CONNECTED:  draw_con("connected");  break;
+       case CON_RECEIVE:    draw_con("connected");  break;
+       case CON_SEND:       draw_con("connected");  break;
        case CON_ERROR:      draw_con("in error");   break;
     }
     wnoutrefresh(w_receive); /* don't erase this win - it holds buffer */
