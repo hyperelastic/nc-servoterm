@@ -33,7 +33,7 @@ int con_state;
 
 /* global connection + tui shared variables */
 int shell_send_flag;    /* set to 1 from tui.c */
-float wave[8];          /* term0.wave[0-7], range -0.5 to 0.5 */
+float wave[8] = {0., 0., 0., 0., 0., 0., 0., 0. }; /* term0.wave[0-7], -0.5 to 0.5 */
 
 /* global ncurses-specific */
 WINDOW *w_receive;

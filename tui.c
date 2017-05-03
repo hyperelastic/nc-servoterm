@@ -27,6 +27,7 @@ WINDOW *w_shell;
 WINDOW *w_status;
 WINDOW *w_receive;
 WINDOW *w_pins;
+WINDOW *w_wave;
 
 /* global connection+display variables */
 char shell_buffer[SHELL_BUF_SIZE] = "";
@@ -36,6 +37,8 @@ int shell_send_flag = 0;
 /* local */
 int hist_i = 0;
 char hist[SHELL_HIST_SIZE][SHELL_BUF_SIZE];
+int wave_win_flag = 0;
+int wave_win_position = 0;
 
 
 ITEM **construct_menu_items(char *items_list[], int n_items) {
@@ -52,7 +55,8 @@ ITEM **construct_menu_items(char *items_list[], int n_items) {
     return(items);
 }
 
-WINDOW *construct_menu_win(MENU *menu, int nlines, int ncols, int begin_y, int begin_x){
+WINDOW *construct_menu_win(MENU *menu, int nlines, int ncols, int begin_y,
+        int begin_x){
     WINDOW *menu_win = newwin(nlines, ncols, begin_y, begin_x);
     keypad(menu_win, TRUE);
     set_menu_win(menu, menu_win);
@@ -83,6 +87,7 @@ void tui_setup() {
 
     /* enough space for wave window */
     if (term_h >= 24+W_WAVE_H) {
+        wave_win_flag = 1;
         w_pins_h -= W_WAVE_H;
         w_receive_h -= W_WAVE_H;
     }
@@ -111,6 +116,19 @@ void tui_setup() {
     w_pins = construct_menu_win(hal_pins_menu, w_pins_h, W_TITLE_W,
             W_TITLE_H + W_CON_STATUS_H + W_SHELL_H, 0);
 
+    /* stmbl waves window */
+    if (wave_win_flag) {
+        w_wave = newwin(term_h-w_receive_h, W_TITLE_W+W_RECEIVE_W+1,
+                        w_receive_h, 0);
+        refresh();
+        box(w_wave, 0, 0);
+        wrefresh(w_wave);
+        wresize(w_wave, term_h-w_receive_h-2, W_TITLE_W+W_RECEIVE_W-1);
+        mvwin(w_wave, w_receive_h+1, 1);
+        wclear(w_wave);
+        wrefresh(w_wave);
+    }
+
     /* stmbl connection output window, also accesed in connection.c */
     w_receive = newwin(w_receive_h, W_RECEIVE_W, 0, W_TITLE_W + 1);
     refresh();
@@ -122,6 +140,7 @@ void tui_setup() {
     scrollok(w_receive, TRUE);
     wclear(w_receive);
     wrefresh(w_receive);
+
 
 //    if (term_h < 24 || term_w < 80) {
 //        mvwprintw(w_receive, 1, 1, "Terminal not big enough");
@@ -163,6 +182,15 @@ void draw_pin() {
     wnoutrefresh(w_pins);
 }
 
+void draw_wave() {
+    if (++wave_win_position > (W_TITLE_W + W_RECEIVE_W)) {
+        wave_win_position = 0;
+        werase(w_wave);
+    }
+    mvwprintw(w_wave, 4+(int)(8*wave[1]), wave_win_position-1, "*");
+    wnoutrefresh(w_wave);
+}
+
 void draw_exit() {
     mvwprintw(w_title, 1, 1, "EXIT: exiting");
     mvwprintw(w_title, 2, 1, "press any key to quit.");
@@ -197,6 +225,11 @@ void draw_screen() {
     werase(w_shell);
     box(w_title, 0, 0);
     box(w_shell, 0, 0);
+
+    if (wave_win_flag) {
+        draw_wave();
+    }
+
     switch(tui_state) {
         case TUI_SHELL:     draw_shell();   break;
         case TUI_PIN:       draw_pin();     break;
