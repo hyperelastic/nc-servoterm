@@ -51,7 +51,10 @@ int main() {
 
         i++;
         switch(con_state) {
-            case CON_CONNECTED: /* ~10kHz, stmbl parse */
+            case CON_RECEIVE:   /* ~10kHz, stmbl parse */
+                usleep(1e2);
+                break; 
+            case CON_SEND:      /* ~10kHz, stmbl parse */
                 usleep(1e2);
                 break; 
             default:            /* easy on CPU when connecting*/
