@@ -97,30 +97,27 @@ void con_init() {
 }
 
 void con_recieve() {
+    int ret;
     enum sp_return error;
 
-    sp_nonblocking_read(port, &rx, sizeof(rx));
+    ret = sp_nonblocking_read(port, &rx, sizeof(rx));
 
-    if (wave_count==-1) {       /* no wave, normal */
-        if (isprint(rx)) {  
-            waddch(w_receive, rx);
+    if (ret > 0) {
+
+        if (wave_count>=0) {
+            wave[wave_count++] = (rx-128)/128.;
+            if (wave_count == 8) {
+                wave_count = -1;
+            }
         }
-        else if (rx==10) {          /* new line */
-            waddch(w_receive, rx);
-        }
-        else if (rx==0xFF) {        /* wave announced */
+        else if (rx==0xFF) {
             wave_count = 0;
         }
-    } 
-    else if (wave_count<8) {    /* process wave */
-        wave[wave_count] = (rx-128)/128.;
-        wave_count++;
+        else {
+            waddch(w_receive, rx);
+        }
     }
-    else {                      /* wave over, back to normal */
-        wave_count = -1;
-    }
-
-    rx = 0;
+    
     error = sp_input_waiting(port);
     if (error < 0) {
         con_state = CON_ERROR;
