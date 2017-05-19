@@ -158,6 +158,7 @@ void draw_shell() {
     mvwprintw(w_shell, 1, 3, shell_buffer);
     wnoutrefresh(w_title);
     wnoutrefresh(w_shell);
+    wnoutrefresh(w_pins);
 }
 
 void draw_hist() {
@@ -171,16 +172,16 @@ void draw_hist() {
     wnoutrefresh(w_shell);
 }
 
-void draw_pin() {
-    mvwprintw(w_title, 0, 12, "NC-SERVOTERM");
-    mvwprintw(w_title, 1, 1, "PINS: (pg)up/(pg)dwn-browse");
-    mvwprintw(w_title, 2, 1, "enter-add&go2shell, left-go2shell");
-    mvwprintw(w_shell, 1, 1, "."); /* pins are active */
-    mvwprintw(w_shell, 1, 3, shell_buffer);
-    wnoutrefresh(w_title);
-    wnoutrefresh(w_shell);
-    wnoutrefresh(w_pins);
-}
+//void draw_pin() {
+//    mvwprintw(w_title, 0, 12, "NC-SERVOTERM");
+//    mvwprintw(w_title, 1, 1, "PINS: (pg)up/(pg)dwn-browse");
+//    mvwprintw(w_title, 2, 1, "enter-add&go2shell, left-go2shell");
+//    mvwprintw(w_shell, 1, 1, "."); /* pins are active */
+//    mvwprintw(w_shell, 1, 3, shell_buffer);
+//    wnoutrefresh(w_title);
+//    wnoutrefresh(w_shell);
+//    wnoutrefresh(w_pins);
+//}
 
 void draw_wave() {
     if (++wave_win_position > (W_TITLE_W + W_RECEIVE_W)) {
@@ -232,7 +233,6 @@ void draw_screen() {
 
     switch(tui_state) {
         case TUI_SHELL:     draw_shell();   break;
-        case TUI_PIN:       draw_pin();     break;
         case TUI_HIST:      draw_hist();    break;
         case TUI_EXIT:      draw_exit();    break;
         case TUI_RESIZE:    draw_resize();  break;
@@ -242,21 +242,32 @@ void draw_screen() {
 }
 
 
-void shell_clear() {
-    memset(shell_buffer, 0, SHELL_BUF_SIZE);
-    shell_position = 0;
-}
-
 void shell_delete() {
+    int i;
     if (shell_position > 0) {
+        menu_driver(hal_pins_menu, REQ_BACK_PATTERN);
+        menu_driver(hal_pins_menu, REQ_PREV_MATCH);
         shell_position--;
+        if (shell_buffer[shell_position] == ' ') {
+            menu_driver(hal_pins_menu, REQ_CLEAR_PATTERN);
+            for (i=0; i<shell_position; i++) {
+                menu_driver(hal_pins_menu, shell_buffer[i]);
+            }
+        }
         shell_buffer[shell_position] = '\0';
     }
 }
 
 void shell_write(int input_key) {
-    if (isprint(input_key)) {
-        if (shell_position < SHELL_BUF_SIZE-1) {
+    if (shell_position < SHELL_BUF_SIZE-1) {
+        if (isprint(input_key)) {
+            if (input_key == ' ') {
+                menu_driver(hal_pins_menu, REQ_CLEAR_PATTERN);
+            }
+            else {
+                menu_driver(hal_pins_menu, input_key);
+                menu_driver(hal_pins_menu, REQ_NEXT_MATCH);
+            }
             shell_buffer[shell_position] = input_key;
             shell_position++;
             shell_buffer[shell_position] = '\0';
@@ -265,8 +276,25 @@ void shell_write(int input_key) {
 }
 
 void shell_send() {
+    menu_driver(hal_pins_menu, REQ_CLEAR_PATTERN);
     hist_add();
-    shell_send_flag = 1; /* reset from connection.c when sent */
+    shell_send_flag = 1; /* reset shell_buffer from connection.c when sent */
+}
+
+void shell_pgdown() {
+    menu_driver(hal_pins_menu, REQ_SCR_DPAGE);
+}
+
+void shell_pgup() {
+    menu_driver(hal_pins_menu, REQ_SCR_UPAGE);
+}
+
+void shell_tab() {
+    int error;
+    error = menu_driver(hal_pins_menu, REQ_NEXT_MATCH);
+    if (error == E_NO_MATCH) {
+        menu_driver(hal_pins_menu, REQ_CLEAR_PATTERN); /* back to start */
+    }
 }
 
 void shell_to_hist() {
@@ -282,9 +310,10 @@ void input_shell(int key) {
         case KEY_BACKSPACE: shell_delete();         break;
         case KEY_UP:        shell_to_hist();        break;
         case KEY_LEFT:      shell_to_hist();        break; /* TODO edit inside string */
-        case KEY_DOWN:      tui_state = TUI_PIN;    break;
-        case KEY_RIGHT:     tui_state = TUI_PIN;    break; /* TODO edit inside string */
         case 10 /*enter*/:  shell_send();           break;
+        case KEY_NPAGE:     shell_pgdown();         break;
+        case KEY_PPAGE:     shell_pgup();           break;
+        case 9 /*tab*/:     shell_tab();            break;
         default:            shell_write(key);       break;
     }
 }
@@ -349,56 +378,56 @@ void input_hist(int key) {
 }
 
 
-void pin_lower() {
-    menu_driver(hal_pins_menu, REQ_DOWN_ITEM);
-}
-
-void pin_higher() {
-    int i = item_index(current_item(hal_pins_menu));
-    if (i != 0) menu_driver(hal_pins_menu, REQ_UP_ITEM);
-    else tui_state = TUI_SHELL;
-}
-
-void pin_pgdown() {
-    menu_driver(hal_pins_menu, REQ_SCR_DPAGE);
-}
-
-void pin_pgup() {
-    menu_driver(hal_pins_menu, REQ_SCR_UPAGE);
-}
-
-void pin_to_shell() {
-    ITEM *cur_item; 
-    int name_length;
-    int space_left;
-
-    cur_item = current_item(hal_pins_menu);
-    name_length = strlen(item_name(cur_item));
-    if (name_length < SHELL_BUF_SIZE) {
-        space_left = SHELL_BUF_SIZE - shell_position;
-        if (space_left >= name_length) {
-            strcat(shell_buffer, item_name(cur_item));
-            shell_position += name_length;
-        }
-    }
-    tui_state = TUI_SHELL;
-}
-
-void pin_to_clean_shell() {
-    tui_state = TUI_SHELL;
-}
-
-void input_pin(int key) {
-    switch (key) {
-        case KEY_DOWN:      pin_lower();            break;
-        case KEY_UP:        pin_higher();           break;
-        case KEY_NPAGE:     pin_pgdown();           break;
-        case KEY_PPAGE:     pin_pgup();             break;
-        case KEY_LEFT:      pin_to_clean_shell();   break;
-        case 10 /*enter*/:  pin_to_shell();         break;
-        default:                                    break;
-    }
-}
+//void pin_lower() {
+//    menu_driver(hal_pins_menu, REQ_DOWN_ITEM);
+//}
+//
+//void pin_higher() {
+//    int i = item_index(current_item(hal_pins_menu));
+//    if (i != 0) menu_driver(hal_pins_menu, REQ_UP_ITEM);
+//    else tui_state = TUI_SHELL;
+//}
+//
+//void pin_pgdown() {
+//    menu_driver(hal_pins_menu, REQ_SCR_DPAGE);
+//}
+//
+//void pin_pgup() {
+//    menu_driver(hal_pins_menu, REQ_SCR_UPAGE);
+//}
+//
+//void pin_to_shell() {
+//    ITEM *cur_item; 
+//    int name_length;
+//    int space_left;
+//
+//    cur_item = current_item(hal_pins_menu);
+//    name_length = strlen(item_name(cur_item));
+//    if (name_length < SHELL_BUF_SIZE) {
+//        space_left = SHELL_BUF_SIZE - shell_position;
+//        if (space_left >= name_length) {
+//            strcat(shell_buffer, item_name(cur_item));
+//            shell_position += name_length;
+//        }
+//    }
+//    tui_state = TUI_SHELL;
+//}
+//
+//void pin_to_clean_shell() {
+//    tui_state = TUI_SHELL;
+//}
+//
+//void input_pin(int key) {
+//    switch (key) {
+//        case KEY_DOWN:      pin_lower();            break;
+//        case KEY_UP:        pin_higher();           break;
+//        case KEY_NPAGE:     pin_pgdown();           break;
+//        case KEY_PPAGE:     pin_pgup();             break;
+//        case KEY_LEFT:      pin_to_clean_shell();   break;
+//        case 10 /*enter*/:  pin_to_shell();         break;
+//        default:                                    break;
+//    }
+//}
 
 
 void stop_hal() {
@@ -425,7 +454,6 @@ void input_handle(int key) {
     switch(tui_state) {
         case TUI_SHELL:     input_shell(key);       break;
         case TUI_HIST:      input_hist(key);        break;
-        case TUI_PIN:       input_pin(key);         break;
         case TUI_EXIT:                              break;
     }
 }
@@ -444,6 +472,7 @@ void tui_cleanup() {
     delwin(w_status);
     delwin(w_shell);
     delwin(w_pins);
+    if (wave_win_flag) delwin(w_wave);
     erase();
     refresh();
     endwin();

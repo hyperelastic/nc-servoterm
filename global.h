@@ -21,8 +21,7 @@
 #define TUI_EXIT    0
 #define TUI_SHELL   1
 #define TUI_HIST    2
-#define TUI_PIN     3
-#define TUI_RESIZE  4
+#define TUI_RESIZE  3
 
 /* serial connection states */
 #define CON_ERROR       0
